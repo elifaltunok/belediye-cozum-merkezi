@@ -447,3 +447,8 @@ footer {
 .quick-category-card.quick-category-active i {
     transform: scale(1.1);
 }
+
+#map.map-error {
+    border: 2px solid #ef4444 !important;
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.12) !important;
+}

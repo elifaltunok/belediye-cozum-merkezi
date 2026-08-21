@@ -29,11 +29,14 @@
                 <h4 class="card-title mb-0">Yeni Şikayet / Talep Bildirimi</h4>
             </div>
             <div class="card-body">
-                <form method="post" enctype="multipart/form-data">
+                <form method="post" enctype="multipart/form-data" id="ticketForm">
                     {% csrf_token %}
                     
                     <div class="mb-3">
                         <label class="form-label font-weight-bold">Konum Seçimi (Haritadan Noktayı İşaretleyin)</label>
+                        <div id="locationWarning" class="alert alert-danger d-none mb-2">
+                            <i class="bi bi-exclamation-triangle-fill"></i> Lütfen devam etmeden önce haritadan bir konum seçin.
+                        </div>
                         <div id="map"></div>
                         <p id="coordDisplay" class="text-muted small mt-1">Henüz konum seçilmedi.</p>
                     </div>
@@ -95,6 +98,7 @@
 
     var marker;
     var coordDisplay = document.getElementById('coordDisplay');
+    var mapContainer = document.getElementById('map');
 
     map.on('click', function (e) {
         var lat = e.latlng.lat;
@@ -102,6 +106,12 @@
 
         document.getElementById('id_latitude').value = lat;
         document.getElementById('id_longitude').value = lng;
+        mapContainer.classList.remove('map-error');
+
+        var locationWarning = document.getElementById('locationWarning');
+        if (locationWarning) {
+            locationWarning.classList.add('d-none');
+        }
 
         if (marker) {
             marker.setLatLng(e.latlng);
@@ -139,7 +149,24 @@
             });
     });
 
-        document.querySelectorAll('.quick-category-card').forEach(function (card) {
+    document.getElementById('ticketForm').addEventListener('submit', function (e) {
+        var latInput = document.getElementById('id_latitude');
+        var lngInput = document.getElementById('id_longitude');
+
+        if (!latInput.value || !lngInput.value) {
+            e.preventDefault();
+            mapContainer.classList.add('map-error');
+
+            var locationWarning = document.getElementById('locationWarning');
+            if (locationWarning) {
+                locationWarning.classList.remove('d-none');
+            }
+
+            mapContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    });
+
+    document.querySelectorAll('.quick-category-card').forEach(function (card) {
         card.addEventListener('click', function () {
             var categoryId = this.getAttribute('data-category-id');
             var select = document.getElementById('id_category');

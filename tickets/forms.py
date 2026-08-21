@@ -3,15 +3,13 @@ from django.contrib.gis.geos import Point
 from .models import Resolution, Ticket
 
 class TicketForm(forms.ModelForm):
-    # Form yüzeyinde haritadan gelen koordinatları yakalayacak geçici alanlar
     latitude = forms.FloatField(widget=forms.HiddenInput(attrs={'id': 'id_latitude'}))
     longitude = forms.FloatField(widget=forms.HiddenInput(attrs={'id': 'id_longitude'}))
 
     class Meta:
         model = Ticket
-        # Sadece modelde tanımlı olan alanları yazıyoruz
         fields = [
-            'title', 'category', 'district', 'neighborhood', 
+            'title', 'category', 'district', 'neighborhood',
             'description', 'image'
         ]
         widgets = {
@@ -22,6 +20,25 @@ class TicketForm(forms.ModelForm):
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Sorunu detaylıca açıklayınız...'}),
             'image': forms.FileInput(attrs={'class': 'form-control'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['image'].required = True
+        self.fields['image'].error_messages = {
+            'required': 'Lütfen sorunu gösteren bir fotoğraf ekleyin.'
+        }
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        lat = self.cleaned_data.get('latitude')
+        lng = self.cleaned_data.get('longitude')
+
+        if lat is not None and lng is not None:
+            instance.location = Point(lng, lat, srid=4326)
+
+        if commit:
+            instance.save()
+        return instance
 
     def save(self, commit=True):
         instance = super().save(commit=False)
