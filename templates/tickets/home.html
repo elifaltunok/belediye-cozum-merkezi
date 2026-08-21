@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="text-center mb-5">
+    <h1 class="fw-bold mb-2"><i class="bi bi-geo-alt-fill text-primary"></i> Kent Sorununu Bildir</h1>
+    <p class="text-muted">Haritadan konum seçin, birkaç saniyede talebinizi oluşturun.</p>
+</div>
+
+<div class="mb-5">
+    <h6 class="text-muted text-center mb-3"><i class="bi bi-lightning-charge-fill"></i> Hızlı Kategori Seçimi</h6>
+    <div class="row g-3">
+        {% for cat in quick_categories %}
+        <div class="col-6 col-md-3">
+            <div class="card h-100 quick-category-card" data-category-id="{{ cat.id }}" role="button">
+                <div class="card-body text-center py-4">
+                    <i class="bi {{ cat.icon }} fs-2 text-primary"></i>
+                    <p class="mb-0 mt-2 small fw-semibold">{{ cat.name }}</p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm mb-5">
+            <div class="card-header bg-white">
+                <h4 class="card-title mb-0">Yeni Şikayet / Talep Bildirimi</h4>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label font-weight-bold">Konum Seçimi (Haritadan Noktayı İşaretleyin)</label>
+                        <div id="map"></div>
+                        <p id="coordDisplay" class="text-muted small mt-1">Henüz konum seçilmedi.</p>
+                    </div>
+
+                    {{ form.latitude }}
+                    {{ form.longitude }}
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">İlçe</label>
+                            {{ form.district }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Mahalle</label>
+                            {{ form.neighborhood }}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Kategori</label>
+                        {{ form.category }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Başlık / Konu</label>
+                        {{ form.title }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Açıklama</label>
+                        {{ form.description }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Fotoğraf Ekle</label>
+                        {{ form.image }}
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-2">Talebi Gönder</button>
+                </form>
+                <p class="text-center mt-3">
+                <a href="{% url 'tickets:track' %}">Daha önce oluşturduğunuz talebi takip kodu ile sorgulayın →</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    var map = L.map('map').setView([41.0082, 28.9784], 11);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 19
+    }).addTo(map);
+
+    var marker;
+    var coordDisplay = document.getElementById('coordDisplay');
+
+    map.on('click', function (e) {
+        var lat = e.latlng.lat;
+        var lng = e.latlng.lng;
+
+        document.getElementById('id_latitude').value = lat;
+        document.getElementById('id_longitude').value = lng;
+
+        if (marker) {
+            marker.setLatLng(e.latlng);
+        } else {
+            marker = L.marker(e.latlng).addTo(map);
+        }
+
+        if (coordDisplay) {
+            coordDisplay.textContent = 'Seçilen konum: ' + lat.toFixed(5) + ', ' + lng.toFixed(5) + ' (adres bilgisi getiriliyor...)';
+        }
+
+        fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=' + lat + '&lon=' + lng + '&accept-language=tr')
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                var addr = data.address || {};
+                var district = addr.town || addr.county || addr.city_district || addr.city || '';
+                var neighborhood = addr.suburb || addr.neighbourhood || addr.quarter || addr.village || '';
+
+                if (district) {
+                    document.getElementById('id_district').value = district;
+                }
+                if (neighborhood) {
+                    document.getElementById('id_neighborhood').value = neighborhood;
+                }
+
+                if (coordDisplay) {
+                    coordDisplay.textContent = 'Seçilen konum: ' + lat.toFixed(5) + ', ' + lng.toFixed(5) +
+                        (district ? ' — ' + district : '') + (neighborhood ? ' / ' + neighborhood : '');
+                }
+            })
+            .catch(function () {
+                if (coordDisplay) {
+                    coordDisplay.textContent = 'Seçilen konum: ' + lat.toFixed(5) + ', ' + lng.toFixed(5) + ' (adres otomatik getirilemedi, alanları elle doldurun)';
+                }
+            });
+    });
+
+        document.querySelectorAll('.quick-category-card').forEach(function (card) {
+        card.addEventListener('click', function () {
+            var categoryId = this.getAttribute('data-category-id');
+            var select = document.getElementById('id_category');
+            if (select) {
+                select.value = categoryId;
+            }
+            document.querySelectorAll('.quick-category-card').forEach(function (c) {
+                c.classList.remove('quick-category-active');
+            });
+            this.classList.add('quick-category-active');
+
+            document.getElementById('id_title').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+    });
+</script>
+{% endblock %}

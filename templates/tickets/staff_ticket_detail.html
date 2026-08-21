@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<a href="{% url 'tickets:staff_panel' %}" class="btn btn-link px-0">← Panele dön</a>
+
+<div class="row g-4">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">{{ ticket.title }}</div>
+            <div class="card-body">
+                <p><strong>Takip Kodu:</strong> {{ ticket.tracking_code }}</p>
+                <p><strong>Kategori:</strong> {{ ticket.category.name }}</p>
+                <p><strong>İlçe / Mahalle:</strong> {{ ticket.district }} / {{ ticket.neighborhood|default:"—" }}</p>
+                <p><strong>Açıklama:</strong> {{ ticket.description }}</p>
+                <p><strong>Mevcut Durum:</strong> {{ ticket.get_status_display }}</p>
+                {% if ticket.image %}
+                    <img src="{{ ticket.image.url }}" class="img-fluid rounded mt-2" alt="Talep fotoğrafı">
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card shadow-sm mt-3">
+            <div class="card-header bg-white">Durum Güncelle</div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Yeni Durum</label>
+                        {{ form.new_status }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Saha Notu</label>
+                        {{ form.note }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Çözüm Fotoğrafı</label>
+                        {{ form.resolution_image }}
+                    </div>
+                    <button type="submit" class="btn btn-primary">Kaydet</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">İşlem Geçmişi</div>
+            <div class="card-body">
+                {% for r in resolutions %}
+                    <div class="border-bottom pb-2 mb-2">
+                        <small class="text-muted">{{ r.created_at|date:"d.m.Y H:i" }} — {{ r.handled_by.username|default:"—" }}</small>
+                        <p class="mb-1">{{ r.previous_status|default:"—" }} → <strong>{{ r.get_new_status_display }}</strong></p>
+                        {% if r.note %}<p class="mb-1">{{ r.note }}</p>{% endif %}
+                        {% if r.resolution_image %}
+                            <img src="{{ r.resolution_image.url }}" style="max-height:120px;" class="rounded">
+                        {% endif %}
+                    </div>
+                {% empty %}
+                    <p class="text-muted">Henüz işlem yapılmadı.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

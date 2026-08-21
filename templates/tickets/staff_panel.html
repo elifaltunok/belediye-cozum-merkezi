@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3>
+        {% if profile %}
+            {{ profile.get_unit_display }} — İş Emirleri
+        {% else %}
+            Tüm Talepler (Yönetici Görünümü)
+        {% endif %}
+    </h3>
+</div>
+
+<form method="get" class="mb-3">
+    <select name="status" class="form-select w-auto d-inline-block" onchange="this.form.submit()">
+        <option value="">Tüm Durumlar</option>
+        {% for value, label in status_choices %}
+            <option value="{{ value }}" {% if value == selected_status %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+</form>
+
+<div class="table-responsive">
+<table class="table table-hover bg-white shadow-sm">
+    <thead>
+        <tr>
+            <th>Takip Kodu</th>
+            <th>Başlık</th>
+            <th>Kategori</th>
+            <th>İlçe</th>
+            <th>Durum</th>
+            <th>Tarih</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for ticket in tickets %}
+        <tr>
+            <td>{{ ticket.tracking_code }}</td>
+            <td>{{ ticket.title }}</td>
+            <td>{{ ticket.category.name }}</td>
+            <td>{{ ticket.district }}</td>
+            <td>
+                <span class="badge
+                    {% if ticket.status == 'PENDING' %}bg-warning
+                    {% elif ticket.status == 'IN_PROGRESS' %}bg-info
+                    {% elif ticket.status == 'RESOLVED' %}bg-success
+                    {% else %}bg-secondary{% endif %}">
+                    {{ ticket.get_status_display }}
+                </span>
+            </td>
+            <td>{{ ticket.created_at|date:"d.m.Y H:i" }}</td>
+            <td><a href="{% url 'tickets:staff_ticket_detail' ticket.pk %}" class="btn btn-sm btn-outline-primary">Detay</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-center text-muted py-5">
+        <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+        Bu birime düşen talep bulunmuyor.
+        </td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+{% endblock %}

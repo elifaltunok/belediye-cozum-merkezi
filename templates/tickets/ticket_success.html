@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 text-center">
+        <div class="card shadow-sm p-4">
+            <div class="card-body">
+                <div class="text-success display-1 mb-3">✓</div>
+                <h3>Talebiniz Başarıyla Alındı!</h3>
+                <p class="text-muted">Talebinizin durumunu sorgulamak için aşağıdaki takip kodunu saklayınız.</p>
+                
+                <div class="alert alert-secondary fs-4 fw-bold my-4">
+                    {{ ticket.tracking_code }}
+                </div>
+
+                <a href="{% url 'tickets:home' %}" class="btn btn-outline-primary">Yeni Talep Oluştur</a>
+                <a href="{% url 'tickets:track' %}" class="btn btn-outline-secondary ms-2">Takip Sayfasına Git</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

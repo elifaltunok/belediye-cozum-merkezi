@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2 class="mb-4">Yönetici Analiz Paneli</h2>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+                <h6 class="text-muted">Toplam Talep</h6>
+                <h3>{{ total_tickets }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+                <h6 class="text-muted">Beklemede</h6>
+                <h3 class="text-warning">{{ pending_count }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+                <h6 class="text-muted">Çözülen</h6>
+                <h3 class="text-success">{{ resolved_count }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+                <h6 class="text-muted">Çözüm Noktası</h6>
+                <h3>{{ solution_center_count }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="text-muted"><i class="bi bi-stopwatch"></i> Ortalama Çözüm Süresi</h6>
+                <h3>{% if avg_resolution_hours %}{{ avg_resolution_hours }} saat{% else %}—{% endif %}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-activity"></i> Son Aktiviteler</div>
+            <div class="card-body">
+                {% for r in recent_activity %}
+                    <p class="mb-1 small">
+                        <strong>{{ r.ticket.tracking_code }}</strong> — {{ r.get_new_status_display }}
+                        <span class="text-muted">({{ r.handled_by.username|default:"—" }}, {{ r.created_at|date:"d.m H:i" }})</span>
+                    </p>
+                {% empty %}
+                    <p class="text-muted mb-0 small">Henüz işlem yok.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">Durum Dağılımı</div>
+            <div class="card-body"><canvas id="statusChart"></canvas></div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">İlçe Bazlı Talep Sayısı</div>
+            <div class="card-body"><canvas id="districtChart"></canvas></div>
+        </div>
+    </div>
+
+    <div class="col-md-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">Sektör Dağılımı: Canlı Talepler vs. İBB Geçmiş Ortalaması (%)</div>
+            <div class="card-body"><canvas id="sectorChart"></canvas></div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">Kategori Dağılımı</div>
+            <div class="card-body"><canvas id="categoryChart"></canvas></div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">Aylık Talep Trendi</div>
+            <div class="card-body"><canvas id="trendChart"></canvas></div>
+        </div>
+    </div>
+
+    <div class="col-md-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">Birim Performansı (Çözüm Kayıtları)</div>
+            <div class="card-body"><canvas id="unitChart"></canvas></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    const palette = ['#2563eb', '#16a34a', '#f59e0b', '#dc2626', '#7c3aed', '#0891b2', '#db2777'];
+
+    new Chart(document.getElementById('statusChart'), {
+        type: 'doughnut',
+        data: {
+            labels: {{ status_labels|safe }},
+            datasets: [{ data: {{ status_data|safe }}, backgroundColor: palette }]
+        }
+    });
+
+    new Chart(document.getElementById('districtChart'), {
+        type: 'bar',
+        data: {
+            labels: {{ district_labels|safe }},
+            datasets: [{ label: 'Talep Sayısı', data: {{ district_data|safe }}, backgroundColor: '#2563eb' }]
+        },
+        options: { indexAxis: 'y', plugins: { legend: { display: false } } }
+    });
+
+    new Chart(document.getElementById('sectorChart'), {
+        type: 'bar',
+        data: {
+            labels: {{ sector_labels|safe }},
+            datasets: [
+                { label: 'Canlı Talepler (%)', data: {{ live_sector_data|safe }}, backgroundColor: '#2563eb' },
+                { label: 'İBB Geçmiş Ortalaması (%)', data: {{ historical_sector_data|safe }}, backgroundColor: '#f59e0b' }
+            ]
+        },
+        options: { responsive: true, scales: { y: { beginAtZero: true } } }
+    });
+
+    new Chart(document.getElementById('categoryChart'), {
+        type: 'pie',
+        data: {
+            labels: {{ category_labels|safe }},
+            datasets: [{ data: {{ category_data|safe }}, backgroundColor: palette }]
+        }
+    });
+
+    new Chart(document.getElementById('trendChart'), {
+        type: 'line',
+        data: {
+            labels: {{ trend_labels|safe }},
+            datasets: [{ label: 'Aylık Talep', data: {{ trend_data|safe }}, borderColor: '#16a34a', tension: 0.3, fill: false }]
+        }
+    });
+
+    new Chart(document.getElementById('unitChart'), {
+        type: 'bar',
+        data: {
+            labels: {{ unit_labels|safe }},
+            datasets: [{ label: 'Çözüm Kaydı Sayısı', data: {{ unit_data|safe }}, backgroundColor: '#7c3aed' }]
+        },
+        options: { plugins: { legend: { display: false } } }
+    });
+</script>
+{% endblock %}

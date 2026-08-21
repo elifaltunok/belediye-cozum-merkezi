@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-map"></i> Kent Haritası</h2>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div id="publicMap" style="height: 600px; border-radius: var(--radius);"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    var map = L.map('publicMap').setView([41.0082, 28.9784], 11);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+        subdomains: 'abcd',
+        maxZoom: 19
+    }).addTo(map);
+
+    var statusColors = {
+        'PENDING': '#f59e0b',
+        'IN_PROGRESS': '#2563eb',
+        'RESOLVED': '#16a34a',
+        'REJECTED': '#71717a'
+    };
+
+    var tickets = {{ tickets_json|safe }};
+    tickets.forEach(function (t) {
+        L.circleMarker([t.lat, t.lng], {
+            radius: 8,
+            fillColor: statusColors[t.status] || '#71717a',
+            color: '#fff',
+            weight: 2,
+            fillOpacity: 0.9
+        }).addTo(map).bindPopup(
+            '<strong>' + t.title + '</strong><br>' +
+            t.category + ' — ' + t.district + '<br>' +
+            '<span class="badge" style="background:' + (statusColors[t.status] || '#71717a') + ';">' + t.status_display + '</span><br>' +
+            '<small>' + t.tracking_code + '</small>'
+        );
+    });
+
+    var centers = {{ centers_json|safe }};
+    var centerIcon = L.divIcon({
+        html: '<i class="bi bi-building-fill-check" style="color:#7c3aed; font-size:1.3rem;"></i>',
+        className: '', iconSize: [24, 24], iconAnchor: [12, 12]
+    });
+    centers.forEach(function (c) {
+        L.marker([c.lat, c.lng], { icon: centerIcon }).addTo(map).bindPopup(
+            '<strong>' + c.name + '</strong><br>' + c.address
+        );
+    });
+</script>
+{% endblock %}
