@@ -10,7 +10,7 @@ class TicketForm(forms.ModelForm):
         model = Ticket
         fields = [
             'title', 'category', 'district', 'neighborhood',
-            'description', 'image'
+            'description', 'email', 'image'
         ]
         widgets = {
             'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Örn: Çukur Sokak Aydınlatma Arızası'}),
@@ -19,6 +19,7 @@ class TicketForm(forms.ModelForm):
             'neighborhood': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Mahalle'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Sorunu detaylıca açıklayınız...'}),
             'image': forms.FileInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'ornek@eposta.com (opsiyonel)'}),
         }
 
     def __init__(self, *args, **kwargs):

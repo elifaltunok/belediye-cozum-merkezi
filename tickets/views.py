@@ -9,6 +9,53 @@ import json
 
 from .models import Ticket, Category, Resolution, SolutionCenter, SectoralStatistic, SECTOR_CHOICES, UNIT_CHOICES
 from .forms import TicketForm, ResolutionForm, TrackingForm
+from .emails import send_status_notification
+
+CATEGORY_ICON_KEYWORDS = {
+    'kaldırım': 'bi-cone-striped',
+    'yol': 'bi-signpost-split-fill',
+    'çöp': 'bi-trash3-fill',
+    'temizlik': 'bi-trash3-fill',
+    'park': 'bi-tree-fill',
+    'yeşil': 'bi-tree-fill',
+    'su': 'bi-droplet-fill',
+    'kanalizasyon': 'bi-droplet-fill',
+    'trafik': 'bi-sign-turn-right-fill',
+    'ulaşım': 'bi-bus-front-fill',
+    'aydınlatma': 'bi-lightbulb-fill',
+    'gürültü': 'bi-volume-up-fill',
+    'hayvan': 'bi-heart-fill',
+    'otopark': 'bi-p-square-fill',
+    'elektrik': 'bi-lightning-charge-fill',
+    'kanal': 'bi-water',
+}
+
+
+def get_category_icon(category):
+    name_lower = category.name.lower()
+    for keyword, icon in CATEGORY_ICON_KEYWORDS.items():
+        if keyword in name_lower:
+            return icon
+    return UNIT_ICONS.get(category.default_unit, 'bi-three-dots')
+
+CATEGORY_COLOR_PALETTE = [
+    '#2563eb',  # mavi
+    '#dc2626',  # kırmızı
+    '#16a34a',  # yeşil
+    '#f59e0b',  # amber
+    '#7c3aed',  # mor
+    '#0891b2',  # teal
+    '#db2777',  # pembe
+    '#ea580c',  # turuncu
+    '#4338ca',  # indigo
+    '#059669',  # zümrüt
+    '#c026d3',  # fuşya
+    '#65a30d',  # lime
+]
+
+
+def get_category_color(category_id):
+    return CATEGORY_COLOR_PALETTE[category_id % len(CATEGORY_COLOR_PALETTE)]
 
 UNIT_ICONS = {
     'FEN_ISLERI': 'bi-cone-striped',
@@ -31,8 +78,8 @@ def home(request):
         form = TicketForm()
 
     quick_categories = [
-        {'id': c.id, 'name': c.name, 'icon': UNIT_ICONS.get(c.default_unit, 'bi-three-dots')}
-        for c in Category.objects.all()[:8]
+        {'id': c.id, 'name': c.name, 'icon': get_category_icon(c), 'color': get_category_color(c.id)}
+        for c in Category.objects.all()
     ]
 
     return render(request, 'tickets/home.html', {'form': form, 'quick_categories': quick_categories})
@@ -177,6 +224,9 @@ def staff_ticket_detail(request, pk):
 
             ticket.status = resolution.new_status
             ticket.save()
+
+            if resolution.new_status in ['IN_PROGRESS', 'RESOLVED']:
+                send_status_notification(ticket, resolution)
 
             messages.success(request, "Talep durumu güncellendi.")
             return redirect('tickets:staff_ticket_detail', pk=ticket.pk)

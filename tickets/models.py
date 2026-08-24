@@ -30,6 +30,7 @@ STATUS_CHOICES = [
 ]
 
 class Category(models.Model):
+    """	Şikayet kategorileri (Kaldırım, Çöp vb.) — her biri bir İBB sektörüne (sector) ve bir sorumlu birime (default_unit) bağlı"""
     name = models.CharField(max_length=100, verbose_name="Kategori Adı")
     description = models.TextField(blank=True, null=True, verbose_name="Açıklama")
     sector = models.CharField(
@@ -56,11 +57,13 @@ class Category(models.Model):
 
 
 class Ticket(models.Model):
+    """	Ana talep/şikayet kaydı — PointField (GeoDjango) ile coğrafi konum, otomatik takip kodu, otomatik birim ataması"""
     STATUS_CHOICES = STATUS_CHOICES
 
     tracking_code = models.CharField(max_length=12, unique=True, editable=False, verbose_name="Takip Kodu")
     title = models.CharField(max_length=200, verbose_name="Başlık / Konu")
     description = models.TextField(verbose_name="Açıklama / Detay")
+    email = models.EmailField(blank=True, null=True, verbose_name="E-posta (bildirim için)")
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='tickets', verbose_name="Kategori")
 
     district = models.CharField(max_length=100, verbose_name="İlçe")
@@ -99,7 +102,7 @@ class Ticket(models.Model):
 
 
 class Resolution(models.Model):
-    """Saha personelinin bir talebi çözerken bıraktığı iş kaydı / güncelleme geçmişi"""
+    """Personelin her durum güncellemesinde bıraktığı iş kaydı — önceki/yeni durum, saha notu, çözüm fotoğrafı, işlemi yapan kullanıcı"""
 
     ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='resolutions', verbose_name="İlgili Talep")
     assigned_unit = models.CharField(max_length=30, choices=UNIT_CHOICES, verbose_name="Atanan Birim")

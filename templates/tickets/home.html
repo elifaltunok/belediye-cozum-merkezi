@@ -10,15 +10,15 @@
     <h6 class="text-muted text-center mb-3"><i class="bi bi-lightning-charge-fill"></i> Hızlı Kategori Seçimi</h6>
     <div class="row g-3">
         {% for cat in quick_categories %}
-        <div class="col-6 col-md-3">
-            <div class="card h-100 quick-category-card" data-category-id="{{ cat.id }}" role="button">
+        <div class="col-6 col-md-3 col-lg-2">
+            <div class="card h-100 quick-category-card" data-category-id="{{ cat.id }}" data-color="{{ cat.color }}" role="button">
                 <div class="card-body text-center py-4">
-                    <i class="bi {{ cat.icon }} fs-2 text-primary"></i>
+                    <i class="bi {{ cat.icon }} fs-2" style="color: {{ cat.color }};"></i>
                     <p class="mb-0 mt-2 small fw-semibold">{{ cat.name }}</p>
                 </div>
             </div>
         </div>
-        {% endfor %}
+    {% endfor %}
     </div>
 </div>
 
@@ -71,8 +71,16 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Fotoğraf Ekle</label>
+                        <label class="form-label">E-posta <span class="text-muted">(Durum güncellemesi bildirimi için)</span></label>
+                        {{ form.email }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Fotoğraf Ekle <span class="text-danger">*</span></label>
                         {{ form.image }}
+                        {% if form.image.errors %}
+                            <div class="text-danger small mt-1">{{ form.image.errors.0 }}</div>
+                        {% endif %}
                     </div>
 
                     <button type="submit" class="btn btn-primary w-100 py-2">Talebi Gönder</button>
@@ -166,17 +174,22 @@
         }
     });
 
-    document.querySelectorAll('.quick-category-card').forEach(function (card) {
+        document.querySelectorAll('.quick-category-card').forEach(function (card) {
         card.addEventListener('click', function () {
             var categoryId = this.getAttribute('data-category-id');
+            var color = this.getAttribute('data-color');
             var select = document.getElementById('id_category');
             if (select) {
                 select.value = categoryId;
             }
             document.querySelectorAll('.quick-category-card').forEach(function (c) {
                 c.classList.remove('quick-category-active');
+                c.style.borderColor = '';
+                c.style.background = '';
             });
             this.classList.add('quick-category-active');
+            this.style.borderColor = color;
+            this.style.background = color + '14';
 
             document.getElementById('id_title').scrollIntoView({ behavior: 'smooth', block: 'center' });
         });

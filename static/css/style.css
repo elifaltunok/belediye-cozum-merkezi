@@ -452,3 +452,13 @@ footer {
     border: 2px solid #ef4444 !important;
     box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.12) !important;
 }
+
+----------email------------------
+
+.quick-category-card i {
+    transition: transform 0.2s ease;
+}
+
+.quick-category-card:hover i {
+    transform: scale(1.15);
+}
