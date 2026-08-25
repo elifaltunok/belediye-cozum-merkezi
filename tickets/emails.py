@@ -8,11 +8,8 @@ STATUS_EMAIL_SUBJECTS = {
 
 
 def send_status_notification(ticket, resolution):
-    print(f"DEBUG: ticket.email = {ticket.email}, new_status = {resolution.new_status}")
     if not ticket.email:
-        print("DEBUG: E-posta bos, gonderim atlaniyor.")
         return
-    
 
     subject_text = STATUS_EMAIL_SUBJECTS.get(resolution.new_status)
     if not subject_text:
@@ -38,5 +35,5 @@ def send_status_notification(ticket, resolution):
         message=message,
         from_email=settings.DEFAULT_FROM_EMAIL,
         recipient_list=[ticket.email],
-        fail_silently=False,
+        fail_silently=True,
     )
