@@ -1,60 +1,105 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card shadow-sm">
-            <div class="card-header bg-white">Talep Durumu Sorgula</div>
-            <div class="card-body">
-                <form method="post" class="d-flex gap-2 mb-3">
-                    {% csrf_token %}
-                    {{ form.tracking_code }}
-                    <button type="submit" class="btn btn-primary">Sorgula</button>
-                </form>
+<div class="d-flex justify-content-center align-items-center my-4" style="min-height: 70vh;">
+    <div class="col-12 col-sm-10 col-md-6 col-lg-5 col-xl-4">
+        <div class="card shadow-lg border-0 rounded-4 p-4 text-center">
 
-                {% if searched %}
-                    {% if ticket %}
-                        <div class="border rounded p-3">
-                            <h5>{{ ticket.title }}</h5>
-                            <p class="text-muted mb-1">{{ ticket.description }}</p>
-                            <p class="mb-1"><strong>Kategori:</strong> {{ ticket.category.name }}</p>
-                            <p class="mb-1"><strong>İlçe:</strong> {{ ticket.district }}{% if ticket.neighborhood %} / {{ ticket.neighborhood }}{% endif %}</p>
-                            <p class="mb-1">
-                                <strong>Durum:</strong>
-                                <span class="badge
-                                    {% if ticket.status == 'PENDING' %}bg-warning
-                                    {% elif ticket.status == 'IN_PROGRESS' %}bg-info
-                                    {% elif ticket.status == 'RESOLVED' %}bg-success
-                                    {% else %}bg-secondary{% endif %}">
-                                    {{ ticket.get_status_display }}
-                                </span>
-                            </p>
-                            <p class="text-muted mb-0"><small>Oluşturulma: {{ ticket.created_at|date:"d.m.Y H:i" }}</small></p>
-                            {% if ticket.status == 'RESOLVED' or ticket.status == 'REJECTED' %}
-                                {% with last_resolution=ticket.resolutions.first %}
-                                    {% if last_resolution %}
-                                        <hr>
-                                        <h6 class="mt-3">
-                                            {% if ticket.status == 'RESOLVED' %}Çözüm Detayı{% else %}Ret Gerekçesi{% endif %}
-                                        </h6>
-                                        {% if last_resolution.note %}
-                                            <p class="mb-2">{{ last_resolution.note }}</p>
-                                        {% endif %}
-                                        {% if last_resolution.resolution_image %}
-                                            <img src="{{ last_resolution.resolution_image.url }}" class="img-fluid rounded" alt="Çözüm fotoğrafı" style="max-height: 300px;">
-                                        {% endif %}
-                                        <p class="text-muted mt-2 mb-0">
-                                            <small>İşlem tarihi: {{ last_resolution.created_at|date:"d.m.Y H:i" }}</small>
-                                        </p>
-                                    {% endif %}
-                                {% endwith %}
-                            {% endif %}
-                        </div>
-                    {% else %}
-                        <div class="alert alert-danger mb-0">Bu takip koduna sahip bir talep bulunamadı.</div>
-                    {% endif %}
+            <!-- Logo & Başlık Alanı -->
+            <div class="mb-4">
+                <div class="d-inline-flex align-items-center justify-content-center bg-primary-subtle text-primary rounded-circle mb-3" style="width: 60px; height: 60px;">
+                    <i class="bi bi-buildings-fill fs-3"></i>
+                </div>
+                <h2 class="fw-bold mb-1 text-dark">Başvuru Takip</h2>
+                {% if not searched %}
+                    <p class="text-muted small">Sorgulama yönteminizi seçerek devam edin</p>
                 {% endif %}
             </div>
+
+            {% if not searched %}
+            <!-- Seçenek Sekmeleri (Takip Kodu / Telefon) -->
+            <ul class="nav nav-pills nav-fill mb-4 bg-light p-1 rounded-pill" id="trackTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active rounded-pill py-2 small fw-semibold" id="code-tab" data-bs-toggle="tab" data-bs-target="#code-panel" type="button" role="tab">
+                        <i class="bi bi-ticket-perforated"></i> Takip Kodu
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link rounded-pill py-2 small fw-semibold" id="phone-tab" data-bs-toggle="tab" data-bs-target="#phone-panel" type="button" role="tab">
+                        <i class="bi bi-telephone"></i> Telefon No
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Sekme İçerikleri -->
+            <div class="tab-content" id="trackTabContent">
+
+                <!-- 1. Takip Kodu ile Sorgulama Formu -->
+                <div class="tab-pane fade show active" id="code-panel" role="tabpanel">
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="search_type" value="code">
+                        <div class="mb-3">
+                            <input type="text" name="tracking_code" class="form-control form-control-lg text-center rounded-pill bg-light border-0 py-3 fs-6" placeholder="Örn: BEY-XXXXXX" required>
+                        </div>
+                        <button type="submit" class="btn btn-dark btn-lg w-100 rounded-pill py-3 fw-bold fs-6 shadow-sm">
+                            Devam Et <i class="bi bi-arrow-right ms-2"></i>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- 2. Telefon Numarası ile Sorgulama Formu -->
+                <div class="tab-pane fade" id="phone-panel" role="tabpanel">
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="search_type" value="phone">
+                        <div class="mb-3">
+                            <input type="tel" name="phone_number" class="form-control form-control-lg text-center rounded-pill bg-light border-0 py-3 fs-6" placeholder="5XX XXX XX XX" required>
+                        </div>
+                        <button type="submit" class="btn btn-dark btn-lg w-100 rounded-pill py-3 fw-bold fs-6 shadow-sm">
+                            Devam Et <i class="bi bi-arrow-right ms-2"></i>
+                        </button>
+                    </form>
+                </div>
+
+            </div>
+            {% endif %}
+
+            <!-- Sonuç Alanı -->
+            {% if searched %}
+                <div class="text-start mt-2">
+                    {% if ticket %}
+                        <a href="{% url 'tickets:public_ticket_detail' ticket.tracking_code %}" class="text-decoration-none">
+                            <div class="border rounded-4 p-3 bg-light result-card-clickable">
+                                <h6 class="fw-bold mb-1 text-dark">{{ ticket.title }}</h6>
+                                <p class="text-muted small mb-2">{{ ticket.description|truncatechars:70 }}</p>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="small text-muted">Durum:</span>
+                                    <span class="badge
+                                        {% if ticket.status == 'PENDING' %}bg-warning
+                                        {% elif ticket.status == 'IN_PROGRESS' %}bg-info
+                                        {% elif ticket.status == 'RESOLVED' %}bg-success
+                                        {% else %}bg-secondary{% endif %} rounded-pill px-3 py-2">
+                                        {{ ticket.get_status_display }}
+                                    </span>
+                                </div>
+                                <small class="text-muted d-block">Kategori: {{ ticket.category.name }}</small>
+                                <small class="text-muted d-block mb-2">Tarih: {{ ticket.created_at|date:"d.m.Y H:i" }}</small>
+                                <small class="text-primary fw-semibold"><i class="bi bi-arrow-right-circle"></i> Detayları görüntüle</small>
+                            </div>
+                        </a>
+                    {% else %}
+                        <div class="alert alert-danger rounded-4 mb-0 text-center small">
+                            Girdiğiniz bilgilere ait bir başvuru bulunamadı.
+                        </div>
+                    {% endif %}
+
+                    <p class="text-center mt-3 mb-0">
+                        <a href="{% url 'tickets:track' %}" class="small">← Başka bir sorgu yap</a>
+                    </p>
+                </div>
+            {% endif %}
+
         </div>
     </div>
 </div>

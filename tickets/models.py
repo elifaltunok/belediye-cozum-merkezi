@@ -64,6 +64,7 @@ class Ticket(models.Model):
     title = models.CharField(max_length=200, verbose_name="Başlık / Konu")
     description = models.TextField(verbose_name="Açıklama / Detay")
     email = models.EmailField(blank=True, null=True, verbose_name="E-posta (bildirim için)")
+    support_count = models.PositiveIntegerField(default=1, verbose_name="Destek Sayısı")
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='tickets', verbose_name="Kategori")
 
     district = models.CharField(max_length=100, verbose_name="İlçe")

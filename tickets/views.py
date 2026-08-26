@@ -6,6 +6,11 @@ from django.core.paginator import Paginator
 from django.db.models import Count, Avg, F, DurationField, ExpressionWrapper
 from django.db.models.functions import TruncMonth
 import json
+from django.http import JsonResponse
+from django.views.decorators.http import require_GET, require_POST
+from django.contrib.gis.geos import Point
+from django.contrib.gis.measure import D
+from django.contrib.gis.db.models.functions import Distance
 
 from .models import Ticket, Category, Resolution, SolutionCenter, SectoralStatistic, SECTOR_CHOICES, UNIT_CHOICES
 from .forms import TicketForm, ResolutionForm, TrackingForm
@@ -68,6 +73,46 @@ UNIT_ICONS = {
 
 
 def home(request):
+    stats = {
+        'total': Ticket.objects.count(),
+        'resolved': Ticket.objects.filter(status='RESOLVED').count(),
+        'districts': Ticket.objects.values('district').distinct().count(),
+        'centers': SolutionCenter.objects.count(),
+    }
+
+    browse_categories = [
+        {'id': c.id, 'name': c.name, 'icon': get_category_icon(c), 'color': get_category_color(c.id)}
+        for c in Category.objects.all()[:6]
+    ]
+
+    recent_resolved = Ticket.objects.filter(status='RESOLVED').select_related('category').prefetch_related('resolutions').order_by('-updated_at')[:6]
+
+    return render(request, 'tickets/home.html', {
+        'stats': stats,
+        'browse_categories': browse_categories,
+        'recent_resolved': recent_resolved,
+    })
+
+
+def public_ticket_detail(request, tracking_code):
+    ticket = get_object_or_404(
+        Ticket.objects.select_related('category').prefetch_related('resolutions'),
+        tracking_code=tracking_code
+    )
+    resolution = ticket.resolutions.first()
+
+    return render(request, 'tickets/public_ticket_detail.html', {
+        'ticket': ticket,
+        'resolution': resolution,
+    })
+
+
+def new_ticket(request):
+    initial = {}
+    preselected_category = request.GET.get('category')
+    if preselected_category:
+        initial['category'] = preselected_category
+
     if request.method == 'POST':
         form = TicketForm(request.POST, request.FILES)
         if form.is_valid():
@@ -75,14 +120,18 @@ def home(request):
             messages.success(request, f"Talebiniz alındı! Takip Kodunuz: {ticket.tracking_code}")
             return redirect('tickets:ticket_success', tracking_code=ticket.tracking_code)
     else:
-        form = TicketForm()
+        form = TicketForm(initial=initial)
 
     quick_categories = [
         {'id': c.id, 'name': c.name, 'icon': get_category_icon(c), 'color': get_category_color(c.id)}
         for c in Category.objects.all()
     ]
 
-    return render(request, 'tickets/home.html', {'form': form, 'quick_categories': quick_categories})
+    return render(request, 'tickets/new_ticket.html', {
+        'form': form,
+        'quick_categories': quick_categories,
+        'preselected_category': preselected_category,
+    })
 
 def ticket_success(request, tracking_code):
     ticket = get_object_or_404(Ticket, tracking_code=tracking_code)
@@ -324,3 +373,51 @@ def ticket_list(request):
         'selected_category': category_id,
         'selected_status': status_filter,
     })
+@require_GET
+def nearby_tickets(request):
+    try:
+        lat = float(request.GET.get('lat'))
+        lng = float(request.GET.get('lng'))
+    except (TypeError, ValueError):
+        return JsonResponse({'results': []})
+
+    point = Point(lng, lat, srid=4326)
+
+    nearby = (
+        Ticket.objects.exclude(status__in=['RESOLVED', 'REJECTED'])
+        .annotate(distance=Distance('location', point))
+        .filter(distance__lte=D(m=150))
+        .select_related('category')
+        .order_by('distance')[:5]
+    )
+
+    results = [
+        {
+            'tracking_code': t.tracking_code,
+            'title': t.title,
+            'category': t.category.name,
+            'status_display': t.get_status_display(),
+            'support_count': t.support_count,
+            'distance_m': round(t.distance.m),
+        }
+        for t in nearby
+    ]
+
+    return JsonResponse({'results': results})
+
+
+@require_POST
+def support_ticket(request, tracking_code):
+    ticket = get_object_or_404(Ticket, tracking_code=tracking_code)
+
+    supported = request.session.get('supported_tickets', [])
+    if tracking_code in supported:
+        return JsonResponse({'status': 'already_supported', 'support_count': ticket.support_count})
+
+    ticket.support_count += 1
+    ticket.save(update_fields=['support_count'])
+
+    supported.append(tracking_code)
+    request.session['supported_tickets'] = supported
+
+    return JsonResponse({'status': 'ok', 'support_count': ticket.support_count})

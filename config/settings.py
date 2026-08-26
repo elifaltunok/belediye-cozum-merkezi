@@ -141,6 +141,7 @@ if USE_S3:
     AWS_DEFAULT_ACL = None
     AWS_QUERYSTRING_AUTH = False
     AWS_S3_FILE_OVERWRITE = False
+    AWS_S3_CUSTOM_DOMAIN = os.getenv('SUPABASE_S3_CUSTOM_DOMAIN')
 
     STORAGES = {
         "default": {"BACKEND": "storages.backends.s3.S3Storage"},

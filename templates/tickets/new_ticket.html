@@ -1,0 +1,260 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="text-center mb-4">
+    <h2 class="fw-bold mb-1"><i class="bi bi-geo-alt-fill text-primary"></i> Talep Oluştur</h2>
+    <p class="text-muted">Haritadan konum seçin, birkaç saniyede talebinizi kaydedin.</p>
+</div>
+
+<div class="mb-5">
+    <h6 class="text-muted text-center mb-3"><i class="bi bi-lightning-charge-fill"></i> Hızlı Kategori Seçimi</h6>
+    <div class="row g-3">
+        {% for cat in quick_categories %}
+        <div class="col-6 col-md-3 col-lg-2">
+            <div class="card h-100 quick-category-card" data-category-id="{{ cat.id }}" data-color="{{ cat.color }}" role="button">
+                <div class="card-body text-center py-4">
+                    <i class="bi {{ cat.icon }} fs-2" style="color: {{ cat.color }};"></i>
+                    <p class="mb-0 mt-2 small fw-semibold">{{ cat.name }}</p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm mb-5">
+            <div class="card-header bg-white">
+                <h4 class="card-title mb-0">Yeni Şikayet / Talep Bildirimi</h4>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data" id="ticketForm">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label class="form-label font-weight-bold">Konum Seçimi (Haritadan Noktayı İşaretleyin)</label>
+                        <div id="locationWarning" class="alert alert-danger d-none mb-2">
+                            <i class="bi bi-exclamation-triangle-fill"></i> Lütfen devam etmeden önce haritadan bir konum seçin.
+                        </div>
+                        <div id="map"></div>
+                        <p id="coordDisplay" class="text-muted small mt-1">Henüz konum seçilmedi.</p>
+                        <div id="nearbyTicketsBox" class="d-none mb-3"></div>
+                    </div>
+
+                    {{ form.latitude }}
+                    {{ form.longitude }}
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">İlçe</label>
+                            {{ form.district }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Mahalle</label>
+                            {{ form.neighborhood }}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Kategori</label>
+                        {{ form.category }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Başlık / Konu</label>
+                        {{ form.title }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Açıklama</label>
+                        {{ form.description }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">E-posta <span class="text-muted">(opsiyonel — durum güncellemesi bildirimi için)</span></label>
+                        {{ form.email }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Fotoğraf Ekle <span class="text-danger">*</span></label>
+                        {{ form.image }}
+                        {% if form.image.errors %}
+                            <div class="text-danger small mt-1">{{ form.image.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-2">Talebi Gönder</button>
+                </form>
+
+                <p class="text-center mt-3">
+                    <a href="{% url 'tickets:track' %}">Daha önce oluşturduğunuz talebi takip kodu ile sorgulayın →</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    var map = L.map('map').setView([41.0082, 28.9784], 11);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 19
+    }).addTo(map);
+
+    var marker;
+    var coordDisplay = document.getElementById('coordDisplay');
+    var mapContainer = document.getElementById('map');
+
+    {% if preselected_category %}
+    var catSelect = document.getElementById('id_category');
+    if (catSelect) {
+        catSelect.value = '{{ preselected_category }}';
+    }
+    {% endif %}
+
+    map.on('click', function (e) {
+        var lat = e.latlng.lat;
+        var lng = e.latlng.lng;
+
+        document.getElementById('id_latitude').value = lat;
+        document.getElementById('id_longitude').value = lng;
+        mapContainer.classList.remove('map-error');
+
+        var locationWarning = document.getElementById('locationWarning');
+        if (locationWarning) {
+            locationWarning.classList.add('d-none');
+        }
+
+        if (marker) {
+            marker.setLatLng(e.latlng);
+        } else {
+            marker = L.marker(e.latlng).addTo(map);
+        }
+
+        if (coordDisplay) {
+            coordDisplay.textContent = 'Seçilen konum: ' + lat.toFixed(5) + ', ' + lng.toFixed(5) + ' (adres bilgisi getiriliyor...)';
+        }
+
+        fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=' + lat + '&lon=' + lng + '&accept-language=tr')
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                var addr = data.address || {};
+                var district = addr.town || addr.county || addr.city_district || addr.city || '';
+                var neighborhood = addr.suburb || addr.neighbourhood || addr.quarter || addr.village || '';
+
+                if (district) {
+                    document.getElementById('id_district').value = district;
+                }
+                if (neighborhood) {
+                    document.getElementById('id_neighborhood').value = neighborhood;
+                }
+
+                if (coordDisplay) {
+                    coordDisplay.textContent = 'Seçilen konum: ' + lat.toFixed(5) + ', ' + lng.toFixed(5) +
+                        (district ? ' — ' + district : '') + (neighborhood ? ' / ' + neighborhood : '');
+                }
+            })
+            .catch(function () {
+                if (coordDisplay) {
+                    coordDisplay.textContent = 'Seçilen konum: ' + lat.toFixed(5) + ', ' + lng.toFixed(5) + ' (adres otomatik getirilemedi, alanları elle doldurun)';
+                }
+            });
+                    fetch('/api/yakin-talepler/?lat=' + lat + '&lng=' + lng)
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                var box = document.getElementById('nearbyTicketsBox');
+                if (!data.results || data.results.length === 0) {
+                    box.classList.add('d-none');
+                    box.innerHTML = '';
+                    return;
+                }
+
+                var html = '<div class="alert alert-info">';
+                html += '<strong><i class="bi bi-info-circle-fill"></i> Bu bölgede zaten bildirilmiş sorunlar var:</strong>';
+                html += '<p class="small text-muted mb-2">Aynı sorunu tekrar bildirmek yerine, mevcut talebi destekleyerek önceliğini artırabilirsiniz.</p>';
+
+                data.results.forEach(function (item) {
+                    html += '<div class="d-flex justify-content-between align-items-center border rounded p-2 mb-2 bg-white">';
+                    html += '<div><strong>' + item.title + '</strong><br>';
+                    html += '<small class="text-muted">' + item.category + ' — ' + item.distance_m + 'm uzaklıkta — ' + item.support_count + ' destek</small></div>';
+                    html += '<button type="button" class="btn btn-sm btn-outline-primary support-btn" data-code="' + item.tracking_code + '">Destekle</button>';
+                    html += '</div>';
+                });
+
+                html += '</div>';
+                box.innerHTML = html;
+                box.classList.remove('d-none');
+
+                box.querySelectorAll('.support-btn').forEach(function (btn) {
+                    btn.addEventListener('click', function () {
+                        var code = this.getAttribute('data-code');
+                        var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+                        fetch('/destekle/' + code + '/', {
+                            method: 'POST',
+                            headers: { 'X-CSRFToken': csrfToken }
+                        })
+                            .then(function (res) { return res.json(); })
+                            .then(function (result) {
+                                if (result.status === 'ok') {
+                                    this.textContent = 'Desteklendi ✓ (' + result.support_count + ')';
+                                    this.disabled = true;
+                                    this.classList.remove('btn-outline-primary');
+                                    this.classList.add('btn-success');
+                                } else if (result.status === 'already_supported') {
+                                    this.textContent = 'Zaten Desteklediniz';
+                                    this.disabled = true;
+                                }
+                            }.bind(this));
+                    });
+                });
+            })
+            .catch(function () {
+                document.getElementById('nearbyTicketsBox').classList.add('d-none');
+            });
+    });
+
+    document.getElementById('ticketForm').addEventListener('submit', function (e) {
+        var latInput = document.getElementById('id_latitude');
+        var lngInput = document.getElementById('id_longitude');
+
+        if (!latInput.value || !lngInput.value) {
+            e.preventDefault();
+            mapContainer.classList.add('map-error');
+
+            var locationWarning = document.getElementById('locationWarning');
+            if (locationWarning) {
+                locationWarning.classList.remove('d-none');
+            }
+
+            mapContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    });
+
+    document.querySelectorAll('.quick-category-card').forEach(function (card) {
+        card.addEventListener('click', function () {
+            var categoryId = this.getAttribute('data-category-id');
+            var color = this.getAttribute('data-color');
+            var select = document.getElementById('id_category');
+            if (select) {
+                select.value = categoryId;
+            }
+            document.querySelectorAll('.quick-category-card').forEach(function (c) {
+                c.classList.remove('quick-category-active');
+                c.style.borderColor = '';
+                c.style.background = '';
+            });
+            this.classList.add('quick-category-active');
+            this.style.borderColor = color;
+            this.style.background = color + '14';
+
+            document.getElementById('id_title').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+    });
+</script>
+{% endblock %}

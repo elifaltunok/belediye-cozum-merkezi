@@ -462,3 +462,97 @@ footer {
 .quick-category-card:hover i {
     transform: scale(1.15);
 }
+
+-----------Herosection-------------------
+.hero-section {
+    background: linear-gradient(120deg, #0f172a, #2563eb 55%, #7c3aed) !important;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+    color: #ffffff !important;
+}
+
+.hero-section h1,
+.hero-section h2,
+.hero-section h3,
+.hero-section p,
+.hero-section div,
+.hero-section span {
+    color: #ffffff !important;
+}
+
+.hero-section .btn-outline-light {
+    color: #ffffff !important;
+    border-color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.hero-section .btn-outline-light:hover {
+    color: #1d4ed8 !important;
+    background-color: #ffffff !important;
+}
+----------statcard-------------------
+.stat-card {
+    cursor: pointer;
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--primary-light);
+}
+-----------newscard-------------------
+.news-card-img {
+    height: 180px;
+    object-fit: cover;
+}
+
+.news-card-placeholder {
+    height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+    font-size: 2.5rem;
+    color: #16a34a;
+}
+
+.news-card {
+    overflow: hidden;
+}
+
+.news-card:hover {
+    transform: translateY(-3px);
+}
+
+/* Hero Section Arka Plan Ve Yazı Zorlaması */
+div.hero-section {
+    background: linear-gradient(120deg, #0f172a, #2563eb 55%, #7c3aed) !important;
+    border-radius: var(--radius) !important;
+    box-shadow: var(--shadow-lg) !important;
+    color: #ffffff !important;
+}
+
+div.hero-section h1,
+div.hero-section p,
+div.hero-section i {
+    color: #ffffff !important;
+}
+
+/* Takip Et ve Haritayı Gör Buton İç Yazıları */
+div.hero-section .btn-outline-light {
+    color: #ffffff !important;
+    border-color: rgba(255, 255, 255, 0.6) !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+}
+
+div.hero-section .btn-outline-light:hover {
+    color: #1d4ed8 !important;
+    background: #ffffff !important;
+}
+.result-card-clickable {
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.result-card-clickable:hover {
+    background-color: var(--primary-soft) !important;
+    transform: translateY(-2px);
+}
