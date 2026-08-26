@@ -385,8 +385,8 @@ def nearby_tickets(request):
 
     nearby = (
         Ticket.objects.exclude(status__in=['RESOLVED', 'REJECTED'])
-        .annotate(distance=Distance('location', point))
-        .filter(distance__lte=D(m=150))
+        .filter(location__distance_lte=(point, D(m=150), 'spheroid'))
+        .annotate(distance=Distance('location', point, spheroid=True))
         .select_related('category')
         .order_by('distance')[:5]
     )
@@ -404,7 +404,6 @@ def nearby_tickets(request):
     ]
 
     return JsonResponse({'results': results})
-
 
 @require_POST
 def support_ticket(request, tracking_code):
