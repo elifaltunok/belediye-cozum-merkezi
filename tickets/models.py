@@ -64,6 +64,7 @@ class Ticket(models.Model):
     title = models.CharField(max_length=200, verbose_name="Başlık / Konu")
     description = models.TextField(verbose_name="Açıklama / Detay")
     email = models.EmailField(blank=True, null=True, verbose_name="E-posta (bildirim için)")
+    phone = models.CharField(max_length=20, blank=True, null=True, verbose_name="Telefon Numarası (Doğrulanmış)")
     support_count = models.PositiveIntegerField(default=1, verbose_name="Destek Sayısı")
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='tickets', verbose_name="Kategori")
 
@@ -181,3 +182,17 @@ class StaffProfile(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.get_unit_display()}"
+
+class PhoneVerification(models.Model):
+    phone = models.CharField(max_length=20, verbose_name="Telefon Numarası")
+    otp_code = models.CharField(max_length=6, verbose_name="Doğrulama Kodu")
+    is_verified = models.BooleanField(default=False, verbose_name="Doğrulandı mı")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Oluşturulma Tarihi")
+
+    class Meta:
+        verbose_name = "Telefon Doğrulama"
+        verbose_name_plural = "Telefon Doğrulamaları"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.phone} - {'Doğrulandı' if self.is_verified else 'Bekliyor'}"

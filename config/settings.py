@@ -190,3 +190,6 @@ EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'Akıllı Kent Sahada <noreply@akillikent.local>')
 
 SITE_URL = os.getenv('SITE_URL', 'http://127.0.0.1:8000')
+
+#------------------sms-------------------
+SMS_BACKEND = os.getenv('SMS_BACKEND', 'console')

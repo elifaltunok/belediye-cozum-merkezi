@@ -11,10 +11,13 @@ from django.views.decorators.http import require_GET, require_POST
 from django.contrib.gis.geos import Point
 from django.contrib.gis.measure import D
 from django.contrib.gis.db.models.functions import Distance
+from datetime import timedelta
+from django.utils import timezone
 
-from .models import Ticket, Category, Resolution, SolutionCenter, SectoralStatistic, SECTOR_CHOICES, UNIT_CHOICES
+from .models import Ticket, Category, Resolution, SolutionCenter, SectoralStatistic, PhoneVerification, SECTOR_CHOICES, UNIT_CHOICES
 from .forms import TicketForm, ResolutionForm, TrackingForm
 from .emails import send_status_notification
+from .sms import generate_otp, send_otp_sms
 
 CATEGORY_ICON_KEYWORDS = {
     'kaldırım': 'bi-cone-striped',
@@ -35,6 +38,8 @@ CATEGORY_ICON_KEYWORDS = {
     'kanal': 'bi-water',
 }
 
+OTP_VALID_MINUTES = 5
+OTP_RESEND_SECONDS = 60
 
 def get_category_icon(category):
     name_lower = category.name.lower()
@@ -106,7 +111,6 @@ def public_ticket_detail(request, tracking_code):
         'resolution': resolution,
     })
 
-
 def new_ticket(request):
     initial = {}
     preselected_category = request.GET.get('category')
@@ -115,8 +119,15 @@ def new_ticket(request):
 
     if request.method == 'POST':
         form = TicketForm(request.POST, request.FILES)
-        if form.is_valid():
-            ticket = form.save()
+        phone = request.POST.get('phone', '').strip()
+        verified_phones = request.session.get('verified_phones', [])
+
+        if not phone or phone not in verified_phones:
+            messages.error(request, "Devam etmeden önce telefon numaranızı doğrulamanız gerekiyor.")
+        elif form.is_valid():
+            ticket = form.save(commit=False)
+            ticket.phone = phone
+            ticket.save()
             messages.success(request, f"Talebiniz alındı! Takip Kodunuz: {ticket.tracking_code}")
             return redirect('tickets:ticket_success', tracking_code=ticket.tracking_code)
     else:
@@ -295,16 +306,19 @@ def track(request):
     searched = False
 
     if request.method == 'POST':
-        form = TrackingForm(request.POST)
         searched = True
-        if form.is_valid():
-            code = form.cleaned_data['tracking_code'].strip().upper()
-            ticket = Ticket.objects.filter(tracking_code=code).select_related('category').prefetch_related('resolutions').first()
-    else:
-        form = TrackingForm()
+        search_type = request.POST.get('search_type', 'code')
+
+        if search_type == 'phone':
+            phone = request.POST.get('phone_number', '').strip()
+            if phone:
+                ticket = Ticket.objects.filter(phone=phone).select_related('category').prefetch_related('resolutions').order_by('-created_at').first()
+        else:
+            code = request.POST.get('tracking_code', '').strip().upper()
+            if code:
+                ticket = Ticket.objects.filter(tracking_code=code).select_related('category').prefetch_related('resolutions').first()
 
     return render(request, 'tickets/track.html', {
-        'form': form,
         'ticket': ticket,
         'searched': searched,
     })
@@ -420,3 +434,47 @@ def support_ticket(request, tracking_code):
     request.session['supported_tickets'] = supported
 
     return JsonResponse({'status': 'ok', 'support_count': ticket.support_count})
+
+
+@require_POST
+def request_otp(request):
+    phone = request.POST.get('phone', '').strip()
+    if not phone or len(phone) < 10:
+        return JsonResponse({'status': 'error', 'message': 'Geçerli bir telefon numarası girin.'}, status=400)
+
+    recent = PhoneVerification.objects.filter(phone=phone).order_by('-created_at').first()
+    if recent and (timezone.now() - recent.created_at) < timedelta(seconds=OTP_RESEND_SECONDS):
+        wait = OTP_RESEND_SECONDS - int((timezone.now() - recent.created_at).total_seconds())
+        return JsonResponse({'status': 'error', 'message': f'Lütfen {wait} saniye sonra tekrar deneyin.'}, status=429)
+
+    code = generate_otp()
+    PhoneVerification.objects.create(phone=phone, otp_code=code)
+    send_otp_sms(phone, code)
+
+    return JsonResponse({'status': 'ok', 'message': 'Doğrulama kodu gönderildi.'})
+
+
+@require_POST
+def verify_otp(request):
+    phone = request.POST.get('phone', '').strip()
+    code = request.POST.get('code', '').strip()
+
+    verification = PhoneVerification.objects.filter(
+        phone=phone, otp_code=code, is_verified=False
+    ).order_by('-created_at').first()
+
+    if not verification:
+        return JsonResponse({'status': 'error', 'message': 'Kod geçersiz.'}, status=400)
+
+    if (timezone.now() - verification.created_at) > timedelta(minutes=OTP_VALID_MINUTES):
+        return JsonResponse({'status': 'error', 'message': 'Kodun süresi doldu, yeniden gönderin.'}, status=400)
+
+    verification.is_verified = True
+    verification.save(update_fields=['is_verified'])
+
+    verified_phones = request.session.get('verified_phones', [])
+    if phone not in verified_phones:
+        verified_phones.append(phone)
+    request.session['verified_phones'] = verified_phones
+
+    return JsonResponse({'status': 'ok', 'message': 'Telefon doğrulandı.'})

@@ -77,6 +77,25 @@
                     </div>
 
                     <div class="mb-3">
+                        <label class="form-label">Telefon Numarası <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <input type="tel" id="phoneInput" class="form-control" placeholder="5XX XXX XX XX" required>
+                            <button type="button" id="sendOtpBtn" class="btn btn-outline-primary">Kod Gönder</button>
+                        </div>
+                        <div id="otpSection" class="d-none mt-2">
+                            <div class="input-group">
+                                <input type="text" id="otpInput" class="form-control" placeholder="6 haneli kod" maxlength="6">
+                                <button type="button" id="verifyOtpBtn" class="btn btn-outline-success">Doğrula</button>
+                            </div>
+                            <small id="otpStatus" class="text-muted d-block mt-1"></small>
+                        </div>
+                        <div id="phoneVerifiedBadge" class="d-none mt-2">
+                            <span class="badge bg-success"><i class="bi bi-check-circle-fill"></i> Telefon doğrulandı</span>
+                        </div>
+                        <input type="hidden" name="phone" id="verifiedPhoneField" value="">
+                    </div>
+
+                    <div class="mb-3">
                         <label class="form-label">Fotoğraf Ekle <span class="text-danger">*</span></label>
                         {{ form.image }}
                         {% if form.image.errors %}
@@ -219,9 +238,10 @@
             });
     });
 
-    document.getElementById('ticketForm').addEventListener('submit', function (e) {
+        document.getElementById('ticketForm').addEventListener('submit', function (e) {
         var latInput = document.getElementById('id_latitude');
         var lngInput = document.getElementById('id_longitude');
+        var verifiedPhone = document.getElementById('verifiedPhoneField').value;
 
         if (!latInput.value || !lngInput.value) {
             e.preventDefault();
@@ -233,7 +253,66 @@
             }
 
             mapContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
         }
+
+        if (!verifiedPhone) {
+            e.preventDefault();
+            alert('Lütfen devam etmeden önce telefon numaranızı doğrulayın.');
+        }
+    });
+
+    document.getElementById('sendOtpBtn').addEventListener('click', function () {
+        var phone = document.getElementById('phoneInput').value.trim();
+        if (!phone) { alert('Lütfen telefon numaranızı girin.'); return; }
+
+        var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        var btn = this;
+        btn.disabled = true;
+        btn.textContent = 'Gönderiliyor...';
+
+        fetch('{% url "tickets:request_otp" %}', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'phone=' + encodeURIComponent(phone)
+        })
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                btn.disabled = false;
+                btn.textContent = 'Kod Gönder';
+                if (data.status === 'ok') {
+                    document.getElementById('otpSection').classList.remove('d-none');
+                    document.getElementById('otpStatus').textContent = data.message;
+                    document.getElementById('otpStatus').classList.remove('text-danger');
+                } else {
+                    alert(data.message);
+                }
+            });
+    });
+
+    document.getElementById('verifyOtpBtn').addEventListener('click', function () {
+        var phone = document.getElementById('phoneInput').value.trim();
+        var code = document.getElementById('otpInput').value.trim();
+        var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        fetch('{% url "tickets:verify_otp" %}', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'phone=' + encodeURIComponent(phone) + '&code=' + encodeURIComponent(code)
+        })
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                if (data.status === 'ok') {
+                    document.getElementById('verifiedPhoneField').value = phone;
+                    document.getElementById('phoneVerifiedBadge').classList.remove('d-none');
+                    document.getElementById('otpSection').classList.add('d-none');
+                    document.getElementById('phoneInput').setAttribute('readonly', true);
+                    document.getElementById('sendOtpBtn').disabled = true;
+                } else {
+                    document.getElementById('otpStatus').textContent = data.message;
+                    document.getElementById('otpStatus').classList.add('text-danger');
+                }
+            });
     });
 
     document.querySelectorAll('.quick-category-card').forEach(function (card) {

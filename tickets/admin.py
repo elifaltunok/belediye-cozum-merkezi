@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.gis.admin import GISModelAdmin
-from .models import Category, Ticket, Resolution, SolutionCenter, SectoralStatistic, StaffProfile
+from .models import Category, Ticket, Resolution, SolutionCenter, SectoralStatistic, StaffProfile, PhoneVerification
 
 
 @admin.register(Category)
@@ -41,3 +41,9 @@ class SectoralStatisticAdmin(admin.ModelAdmin):
 class StaffProfileAdmin(admin.ModelAdmin):
     list_display = ('user', 'unit')
     list_filter = ('unit',)
+
+    
+@admin.register(PhoneVerification)
+class PhoneVerificationAdmin(admin.ModelAdmin):
+    list_display = ('phone', 'is_verified', 'created_at')
+    list_filter = ('is_verified',)

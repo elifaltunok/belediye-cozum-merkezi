@@ -19,4 +19,6 @@ urlpatterns = [
     path('cozum/<str:tracking_code>/', views.public_ticket_detail, name='public_ticket_detail'),
     path('api/yakin-talepler/', views.nearby_tickets, name='nearby_tickets'),
     path('destekle/<str:tracking_code>/', views.support_ticket, name='support_ticket'),
+    path('api/otp/gonder/', views.request_otp, name='request_otp'),
+    path('api/otp/dogrula/', views.verify_otp, name='verify_otp'),
 ]
