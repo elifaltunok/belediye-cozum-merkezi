@@ -61,6 +61,8 @@
                         {{ form.category }}
                     </div>
 
+                    <div id="dynamicFieldsContainer"></div>
+
                     <div class="mb-3">
                         <label class="form-label">Başlık / Konu</label>
                         {{ form.title }}
@@ -315,6 +317,65 @@
             });
     });
 
+    function escapeHtml(text) {
+        var div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function loadDynamicFields(categoryId) {
+        var container = document.getElementById('dynamicFieldsContainer');
+        if (!categoryId) {
+            container.innerHTML = '';
+            return;
+        }
+
+        fetch('/api/kategori-alanlari/' + categoryId + '/')
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                var html = '';
+                data.fields.forEach(function (f) {
+                    var safeLabel = escapeHtml(f.label);
+                    var requiredMark = f.is_required ? ' <span class="text-danger">*</span>' : '';
+                    var requiredAttr = f.is_required ? ' required' : '';
+
+                    html += '<div class="mb-3">';
+                    html += '<label class="form-label">' + safeLabel + requiredMark + '</label>';
+
+                    if (f.field_type === 'textarea') {
+                        html += '<textarea name="df_' + f.id + '" class="form-control" rows="3"' + requiredAttr + '></textarea>';
+                    } else if (f.field_type === 'number') {
+                        html += '<input type="number" name="df_' + f.id + '" class="form-control"' + requiredAttr + '>';
+                    } else if (f.field_type === 'date') {
+                        html += '<input type="date" name="df_' + f.id + '" class="form-control"' + requiredAttr + '>';
+                    } else if (f.field_type === 'choice') {
+                        html += '<select name="df_' + f.id + '" class="form-select"' + requiredAttr + '><option value="">Seçiniz</option>';
+                        f.choices.forEach(function (c) {
+                            var safeChoice = escapeHtml(c);
+                            html += '<option value="' + safeChoice + '">' + safeChoice + '</option>';
+                        });
+                        html += '</select>';
+                    } else if (f.field_type === 'boolean') {
+                        html += '<select name="df_' + f.id + '" class="form-select"' + requiredAttr + '>';
+                        html += '<option value="">Seçiniz</option><option value="Evet">Evet</option><option value="Hayır">Hayır</option></select>';
+                    } else {
+                        html += '<input type="text" name="df_' + f.id + '" class="form-control"' + requiredAttr + '>';
+                    }
+
+                    html += '</div>';
+                });
+                container.innerHTML = html;
+            });
+    }
+
+    document.getElementById('id_category').addEventListener('change', function () {
+        loadDynamicFields(this.value);
+    });
+
+    {% if preselected_category %}
+    loadDynamicFields('{{ preselected_category }}');
+    {% endif %}
+
     document.querySelectorAll('.quick-category-card').forEach(function (card) {
         card.addEventListener('click', function () {
             var categoryId = this.getAttribute('data-category-id');
@@ -332,6 +393,7 @@
             this.style.borderColor = color;
             this.style.background = color + '14';
 
+            loadDynamicFields(categoryId);
             document.getElementById('id_title').scrollIntoView({ behavior: 'smooth', block: 'center' });
         });
     });

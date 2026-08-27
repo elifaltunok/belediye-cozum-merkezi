@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.db.models import Count, Avg, F, DurationField, ExpressionWrapper
+from django.db.models import Count, Avg, F, DurationField, ExpressionWrapper, Max
 from django.db.models.functions import TruncMonth
 import json
 from django.http import JsonResponse
@@ -14,9 +14,9 @@ from django.contrib.gis.db.models.functions import Distance
 from datetime import timedelta
 from django.utils import timezone
 
-from .models import Ticket, Category, Resolution, SolutionCenter, SectoralStatistic, PhoneVerification, SECTOR_CHOICES, UNIT_CHOICES
+from .models import Ticket, Category, Resolution, SolutionCenter, SectoralStatistic, PhoneVerification, FormFieldAuditLog, SECTOR_CHOICES, UNIT_CHOICES
 from .forms import TicketForm, ResolutionForm, TrackingForm
-from .emails import send_status_notification
+from .notifications import notify_status_change
 from .sms import generate_otp, send_otp_sms
 
 CATEGORY_ICON_KEYWORDS = {
@@ -285,8 +285,7 @@ def staff_ticket_detail(request, pk):
             ticket.status = resolution.new_status
             ticket.save()
 
-            if resolution.new_status in ['IN_PROGRESS', 'RESOLVED']:
-                send_status_notification(ticket, resolution)
+            notify_status_change(ticket, resolution)
 
             messages.success(request, "Talep durumu güncellendi.")
             return redirect('tickets:staff_ticket_detail', pk=ticket.pk)
@@ -478,3 +477,113 @@ def verify_otp(request):
     request.session['verified_phones'] = verified_phones
 
     return JsonResponse({'status': 'ok', 'message': 'Telefon doğrulandı.'})
+
+def _get_manageable_categories(user):
+    if user.is_superuser:
+        return Category.objects.all()
+    profile = getattr(user, 'staff_profile', None)
+    if not profile:
+        return Category.objects.none()
+    return Category.objects.filter(default_unit=profile.unit)
+
+
+@login_required
+def form_builder_list(request):
+    categories = _get_manageable_categories(request.user)
+    return render(request, 'tickets/form_builder_list.html', {'categories': categories})
+
+
+@login_required
+def form_builder_edit(request, category_id):
+    category = get_object_or_404(_get_manageable_categories(request.user), id=category_id)
+    fields = category.dynamic_fields.all().order_by('order')
+    logs = category.audit_logs.select_related('performed_by')[:15]
+    return render(request, 'tickets/form_builder_edit.html', {'category': category, 'fields': fields, 'logs': logs})
+
+
+@login_required
+@require_POST
+def form_field_create(request, category_id):
+    category = get_object_or_404(_get_manageable_categories(request.user), id=category_id)
+    label = request.POST.get('label', '').strip()
+    field_type = request.POST.get('field_type', 'text')
+    choices_text = request.POST.get('choices_text', '').strip()
+    is_required = request.POST.get('is_required') == 'true'
+
+    if not label:
+        return JsonResponse({'status': 'error', 'message': 'Soru metni gerekli.'}, status=400)
+
+    max_order = category.dynamic_fields.aggregate(m=Max('order'))['m'] or 0
+
+    field = DynamicField.objects.create(
+        category=category,
+        label=label,
+        field_type=field_type,
+        choices_text=choices_text,
+        is_required=is_required,
+        order=max_order + 1,
+    )
+    FormFieldAuditLog.objects.create(
+        category=category, field_label=field.label, action='CREATE', performed_by=request.user
+    )
+
+    return JsonResponse({
+        'status': 'ok',
+        'field': {
+            'id': field.id,
+            'label': field.label,
+            'field_type': field.field_type,
+            'field_type_display': field.get_field_type_display(),
+            'choices_text': field.choices_text or '',
+            'is_required': field.is_required,
+        }
+    })
+
+
+@login_required
+@require_POST
+def form_field_update(request, field_id):
+    field = get_object_or_404(DynamicField, id=field_id)
+    if field.category not in _get_manageable_categories(request.user):
+        return JsonResponse({'status': 'error', 'message': 'Yetkiniz yok.'}, status=403)
+
+    field.label = request.POST.get('label', field.label).strip()
+    field.field_type = request.POST.get('field_type', field.field_type)
+    field.choices_text = request.POST.get('choices_text', '').strip()
+    field.is_required = request.POST.get('is_required') == 'true'
+    field.save()
+
+    FormFieldAuditLog.objects.create(
+        category=field.category, field_label=field.label, action='UPDATE', performed_by=request.user
+    )
+
+    return JsonResponse({'status': 'ok'})
+
+
+@login_required
+@require_POST
+def form_field_delete(request, field_id):
+    field = get_object_or_404(DynamicField, id=field_id)
+    if field.category not in _get_manageable_categories(request.user):
+        return JsonResponse({'status': 'error', 'message': 'Yetkiniz yok.'}, status=403)
+
+    FormFieldAuditLog.objects.create(
+        category=field.category, field_label=field.label, action='DELETE', performed_by=request.user
+    )
+    field.delete()
+    return JsonResponse({'status': 'ok'})
+
+
+@login_required
+@require_POST
+def form_field_reorder(request, category_id):
+    category = get_object_or_404(_get_manageable_categories(request.user), id=category_id)
+    order_list = request.POST.getlist('order[]')
+
+    for index, field_id in enumerate(order_list):
+        DynamicField.objects.filter(id=field_id, category=category).update(order=index)
+
+    FormFieldAuditLog.objects.create(
+        category=category, field_label='(sıralama değişti)', action='REORDER', performed_by=request.user
+    )
+    return JsonResponse({'status': 'ok'})

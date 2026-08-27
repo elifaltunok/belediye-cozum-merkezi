@@ -114,6 +114,12 @@ a:hover {
     transform: translateY(-1px);
 }
 
+.navbar .btn-outline-light.active {
+    background: #ffffff !important;
+    color: var(--primary-dark) !important;
+    border-color: #ffffff !important;
+}
+
 /* ----------------------------------- Cards ---------------------------------- */
 
 .card {

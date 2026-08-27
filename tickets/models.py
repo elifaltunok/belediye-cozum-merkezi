@@ -196,3 +196,74 @@ class PhoneVerification(models.Model):
 
     def __str__(self):
         return f"{self.phone} - {'Doğrulandı' if self.is_verified else 'Bekliyor'}"
+
+
+class FormFieldAuditLog(models.Model):
+    ACTION_CHOICES = [
+        ('CREATE', 'Oluşturuldu'),
+        ('UPDATE', 'Güncellendi'),
+        ('DELETE', 'Silindi'),
+        ('REORDER', 'Sıralandı'),
+    ]
+
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='audit_logs', verbose_name="Kategori")
+    field_label = models.CharField(max_length=200, verbose_name="Alan/Soru")
+    action = models.CharField(max_length=10, choices=ACTION_CHOICES, verbose_name="İşlem")
+    performed_by = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True, verbose_name="İşlemi Yapan")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Tarih")
+
+    class Meta:
+        verbose_name = "Form Değişiklik Kaydı"
+        verbose_name_plural = "Form Değişiklik Kayıtları"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.performed_by} — {self.get_action_display()} — {self.field_label}"
+
+
+class DynamicField(models.Model):
+    FIELD_TYPES = [
+        ('text', 'Kısa Metin'),
+        ('textarea', 'Uzun Metin'),
+        ('number', 'Sayı'),
+        ('date', 'Tarih'),
+        ('choice', 'Seçenekli (Tek Seçim)'),
+        ('boolean', 'Evet / Hayır'),
+    ]
+
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='dynamic_fields', verbose_name="Kategori")
+    label = models.CharField(max_length=200, verbose_name="Soru / Etiket")
+    field_type = models.CharField(max_length=20, choices=FIELD_TYPES, default='text', verbose_name="Alan Tipi")
+    choices_text = models.CharField(
+        max_length=500, blank=True, null=True,
+        verbose_name="Seçenekler (virgülle ayırın)",
+        help_text="Sadece 'Seçenekli' tipi için geçerlidir. Örn: Evet, Hayır, Bilmiyorum"
+    )
+    is_required = models.BooleanField(default=True, verbose_name="Zorunlu mu")
+    order = models.PositiveIntegerField(default=0, verbose_name="Sıra")
+
+    class Meta:
+        verbose_name = "Dinamik Form Alanı"
+        verbose_name_plural = "Dinamik Form Alanları"
+        ordering = ['category', 'order']
+
+    def __str__(self):
+        return f"{self.category.name} — {self.label}"
+
+    def get_choices_list(self):
+        if not self.choices_text:
+            return []
+        return [c.strip() for c in self.choices_text.split(',') if c.strip()]
+
+
+class DynamicFieldResponse(models.Model):
+    ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='dynamic_responses', verbose_name="Talep")
+    field = models.ForeignKey(DynamicField, on_delete=models.CASCADE, related_name='responses', verbose_name="Alan")
+    value = models.TextField(blank=True, verbose_name="Cevap")
+
+    class Meta:
+        verbose_name = "Dinamik Alan Cevabı"
+        verbose_name_plural = "Dinamik Alan Cevapları"
+
+    def __str__(self):
+        return f"{self.field.label}: {self.value}"

@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<a href="{% url 'tickets:form_builder_list' %}" class="btn btn-link px-0 mb-2">← Kategori listesine dön</a>
+<h2 class="mb-4"><i class="bi bi-ui-checks-grid"></i> {{ category.name }} — Form Soruları</h2>
+
+<div class="row g-4">
+    <div class="col-md-6">
+        <div class="card mb-3">
+            <div class="card-header bg-white">Yeni Soru Ekle</div>
+            <div class="card-body">
+                <form id="newFieldForm">
+                    <div class="mb-2">
+                        <label class="form-label">Soru Metni</label>
+                        <input type="text" id="newLabel" class="form-control" placeholder="Örn: Kaçak ne zamandır sürüyor?" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Alan Tipi</label>
+                        <select id="newFieldType" class="form-select">
+                            <option value="text">Kısa Metin</option>
+                            <option value="textarea">Uzun Metin</option>
+                            <option value="number">Sayı</option>
+                            <option value="date">Tarih</option>
+                            <option value="choice">Seçenekli (Tek Seçim)</option>
+                            <option value="boolean">Evet / Hayır</option>
+                        </select>
+                    </div>
+                    <div class="mb-2 d-none" id="choicesWrapper">
+                        <label class="form-label">Seçenekler (virgülle ayırın)</label>
+                        <input type="text" id="newChoicesText" class="form-control" placeholder="Evet, Hayır, Bilmiyorum">
+                    </div>
+                    <div class="form-check mb-3">
+                        <input type="checkbox" id="newRequired" class="form-check-input" checked>
+                        <label class="form-check-label" for="newRequired">Zorunlu alan</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Soru Ekle</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-white">Mevcut Sorular <small class="text-muted">(sürükleyerek sıralayın)</small></div>
+            <div class="card-body">
+                <ul id="fieldsList" class="list-group">
+                    {% for field in fields %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center" data-field-id="{{ field.id }}">
+                        <span>
+                            <i class="bi bi-grip-vertical text-muted me-2" style="cursor:grab;"></i>
+                            {{ field.label }}
+                            <small class="text-muted">({{ field.get_field_type_display }}{% if field.is_required %}, zorunlu{% endif %})</small>
+                        </span>
+                        <button type="button" class="btn btn-sm btn-outline-danger delete-field-btn" data-field-id="{{ field.id }}">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item text-muted" id="emptyFieldsMsg">Henüz özel soru eklenmedi.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+    <div class="card">
+        <div class="card-header bg-white"><i class="bi bi-eye"></i> Vatandaş Önizlemesi</div>
+        <div class="card-body">
+            <p class="text-muted small">Vatandaş bu kategoriyi seçtiğinde, standart alanların altında şu soruları görecek:</p>
+            <div id="previewContainer"></div>
+        </div>
+    </div>
+
+    <div class="card mt-3">
+        <div class="card-header bg-white"><i class="bi bi-clock-history"></i> Değişiklik Geçmişi</div>
+        <div class="card-body">
+            {% for log in logs %}
+                <p class="small mb-1">
+                    <strong>{{ log.get_action_display }}</strong> — {{ log.field_label }}
+                    <span class="text-muted">({{ log.performed_by.username|default:"—" }}, {{ log.created_at|date:"d.m.Y H:i" }})</span>
+                </p>
+            {% empty %}
+                <p class="text-muted small mb-0">Henüz değişiklik yapılmadı.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script>
+    function escapeHtml(text) {
+    var div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+    }
+    var categoryId = {{ category.id }};
+    var csrfToken = '{{ csrf_token }}';
+
+    document.getElementById('newFieldType').addEventListener('change', function () {
+        document.getElementById('choicesWrapper').classList.toggle('d-none', this.value !== 'choice');
+    });
+
+    function renderPreview() {
+        var container = document.getElementById('previewContainer');
+        var items = document.querySelectorAll('#fieldsList li[data-field-id]');
+        var html = '';
+
+        items.forEach(function (li) {
+            var label = li.querySelector('span').textContent.trim().split('(')[0].trim();
+            html += '<div class="mb-2"><label class="form-label small fw-semibold">' + label + '</label>' +
+                    '<input type="text" class="form-control form-control-sm" disabled placeholder="Vatandaş burada cevap yazacak"></div>';
+        });
+
+        container.innerHTML = html || '<p class="text-muted small">Henüz soru yok.</p>';
+    }
+    renderPreview();
+
+    document.getElementById('newFieldForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var label = document.getElementById('newLabel').value.trim();
+        var fieldType = document.getElementById('newFieldType').value;
+        var choicesText = document.getElementById('newChoicesText').value.trim();
+        var isRequired = document.getElementById('newRequired').checked;
+
+        var body = 'label=' + encodeURIComponent(label) +
+                   '&field_type=' + encodeURIComponent(fieldType) +
+                   '&choices_text=' + encodeURIComponent(choicesText) +
+                   '&is_required=' + (isRequired ? 'true' : 'false');
+
+        fetch('/form-yonetimi/' + categoryId + '/alan-ekle/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: body
+        })
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                if (data.status !== 'ok') { alert(data.message); return; }
+
+                var emptyMsg = document.getElementById('emptyFieldsMsg');
+                if (emptyMsg) emptyMsg.remove();
+
+                var li = document.createElement('li');
+                li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                li.setAttribute('data-field-id', data.field.id);
+                li.innerHTML = '<span><i class="bi bi-grip-vertical text-muted me-2" style="cursor:grab;"></i>' +
+                    escapeHtml(data.field.label) + ' <small class="text-muted">(' + escapeHtml(data.field.field_type_display) +
+                    (data.field.is_required ? ', zorunlu' : '') + ')</small></span>' +
+                    '<button type="button" class="btn btn-sm btn-outline-danger delete-field-btn" data-field-id="' + data.field.id + '"><i class="bi bi-trash"></i></button>';
+                document.getElementById('fieldsList').appendChild(li);
+                attachDeleteHandler(li.querySelector('.delete-field-btn'));
+
+                document.getElementById('newFieldForm').reset();
+                document.getElementById('choicesWrapper').classList.add('d-none');
+                renderPreview();
+            });
+    });
+
+    function attachDeleteHandler(btn) {
+        btn.addEventListener('click', function () {
+            var fieldId = this.getAttribute('data-field-id');
+            if (!confirm('Bu soruyu silmek istediğinize emin misiniz?')) return;
+
+            fetch('/form-yonetimi/alan/' + fieldId + '/sil/', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrfToken }
+            })
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    if (data.status === 'ok') {
+                        this.closest('li').remove();
+                        renderPreview();
+                    }
+                }.bind(this));
+        });
+    }
+
+    document.querySelectorAll('.delete-field-btn').forEach(attachDeleteHandler);
+
+    var sortableList = document.getElementById('fieldsList');
+    new Sortable(sortableList, {
+        animation: 150,
+        handle: '.bi-grip-vertical',
+        onEnd: function () {
+            var order = Array.from(sortableList.querySelectorAll('li[data-field-id]')).map(function (li) {
+                return li.getAttribute('data-field-id');
+            });
+
+            var body = order.map(function (id) { return 'order[]=' + id; }).join('&');
+
+            fetch('/form-yonetimi/' + categoryId + '/sirala/', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: body
+            }).then(function () { renderPreview(); });
+        }
+    });
+</script>
+{% endblock %}
