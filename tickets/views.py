@@ -14,7 +14,11 @@ from django.contrib.gis.db.models.functions import Distance
 from datetime import timedelta
 from django.utils import timezone
 
-from .models import Ticket, Category, Resolution, SolutionCenter, SectoralStatistic, PhoneVerification, FormFieldAuditLog, SECTOR_CHOICES, UNIT_CHOICES
+from .models import (
+    Ticket, Category, Resolution, SolutionCenter, SectoralStatistic,
+    SECTOR_CHOICES, UNIT_CHOICES, PhoneVerification,
+    DynamicField, DynamicFieldResponse, FormFieldAuditLog,
+)
 from .forms import TicketForm, ResolutionForm, TrackingForm
 from .notifications import notify_status_change
 from .sms import generate_otp, send_otp_sms
