@@ -2,7 +2,14 @@
 
 {% block content %}
 <h2 class="mb-4">Yönetici Analiz Paneli</h2>
-
+<div class="d-flex gap-2 mb-4">
+    <a href="{% url 'tickets:export_tickets_excel' %}" class="btn btn-outline-primary btn-sm">
+        <i class="bi bi-file-earmark-excel"></i> Excel'e Aktar
+    </a>
+    <a href="{% url 'tickets:export_dashboard_pdf' %}" class="btn btn-outline-primary btn-sm">
+        <i class="bi bi-file-earmark-pdf"></i> PDF Rapor
+    </a>
+</div>
 <div class="row g-3 mb-4">
     <div class="col-md-3">
         <div class="card text-center shadow-sm">

@@ -9,6 +9,9 @@
             Tüm Talepler 
         {% endif %}
     </h3>
+    <a href="{% url 'tickets:export_tickets_excel' %}" class="btn btn-outline-primary btn-sm">
+        <i class="bi bi-file-earmark-excel"></i> Excel'e Aktar
+    </a>
 </div>
 
 <form method="get" class="mb-3">

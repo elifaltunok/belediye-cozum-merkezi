@@ -27,4 +27,7 @@ urlpatterns = [
     path('form-yonetimi/alan/<int:field_id>/guncelle/', views.form_field_update, name='form_field_update'),
     path('form-yonetimi/alan/<int:field_id>/sil/', views.form_field_delete, name='form_field_delete'),
     path('form-yonetimi/<int:category_id>/sirala/', views.form_field_reorder, name='form_field_reorder'),
+    path('rapor/excel/', views.export_tickets_excel, name='export_tickets_excel'),
+    path('rapor/pdf/', views.export_dashboard_pdf, name='export_dashboard_pdf'),
+    path('rapor/talep/<int:pk>/pdf/', views.export_ticket_pdf, name='export_ticket_pdf'),
 ]

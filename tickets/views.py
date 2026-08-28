@@ -6,7 +6,7 @@ from django.core.paginator import Paginator
 from django.db.models import Count, Avg, F, DurationField, ExpressionWrapper, Max
 from django.db.models.functions import TruncMonth
 import json
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_GET, require_POST
 from django.contrib.gis.geos import Point
 from django.contrib.gis.measure import D
@@ -18,6 +18,7 @@ from .models import Ticket, Category, Resolution, SolutionCenter, SectoralStatis
 from .forms import TicketForm, ResolutionForm, TrackingForm
 from .notifications import notify_status_change
 from .sms import generate_otp, send_otp_sms
+from .reports import build_tickets_excel, build_dashboard_pdf, build_ticket_pdf
 
 CATEGORY_ICON_KEYWORDS = {
     'kaldırım': 'bi-cone-striped',
@@ -587,3 +588,75 @@ def form_field_reorder(request, category_id):
         category=category, field_label='(sıralama değişti)', action='REORDER', performed_by=request.user
     )
     return JsonResponse({'status': 'ok'})
+
+
+@login_required
+def export_tickets_excel(request):
+    user = request.user
+    if user.is_superuser or user.is_staff:
+        tickets = Ticket.objects.select_related('category').order_by('-created_at')
+    else:
+        profile = getattr(user, 'staff_profile', None)
+        if not profile:
+            return redirect('tickets:staff_panel')
+        tickets = Ticket.objects.filter(current_unit=profile.unit).select_related('category').order_by('-created_at')
+
+    buffer = build_tickets_excel(tickets)
+    response = HttpResponse(
+        buffer.read(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename="talepler.xlsx"'
+    return response
+
+
+@staff_member_required
+def export_dashboard_pdf(request):
+    status_qs = list(Ticket.objects.values('status').annotate(count=Count('id')).order_by('status'))
+    status_dict = dict(Ticket.STATUS_CHOICES)
+    status_rows = [[status_dict.get(row['status'], row['status']), str(row['count'])] for row in status_qs]
+
+    district_qs = list(Ticket.objects.values('district').annotate(count=Count('id')).order_by('-count')[:15])
+    district_rows = [[row['district'], str(row['count'])] for row in district_qs]
+
+    unit_qs = list(Resolution.objects.values('assigned_unit').annotate(count=Count('id')).order_by('-count'))
+    unit_dict = dict(UNIT_CHOICES)
+    unit_rows = [[unit_dict.get(row['assigned_unit'], row['assigned_unit']), str(row['count'])] for row in unit_qs]
+
+    resolved_durations = Resolution.objects.filter(new_status='RESOLVED').annotate(
+        duration=ExpressionWrapper(F('created_at') - F('ticket__created_at'), output_field=DurationField())
+    ).aggregate(avg_duration=Avg('duration'))
+    avg_duration = resolved_durations['avg_duration']
+    avg_resolution_hours = round(avg_duration.total_seconds() / 3600, 1) if avg_duration else None
+
+    context = {
+        'generated_at': timezone.now().strftime('%d.%m.%Y %H:%M'),
+        'total_tickets': Ticket.objects.count(),
+        'pending_count': Ticket.objects.filter(status='PENDING').count(),
+        'resolved_count': Ticket.objects.filter(status='RESOLVED').count(),
+        'avg_resolution_hours': avg_resolution_hours,
+        'status_rows': status_rows,
+        'district_rows': district_rows,
+        'unit_rows': unit_rows,
+    }
+
+    buffer = build_dashboard_pdf(context)
+    response = HttpResponse(buffer.read(), content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="yonetici-raporu.pdf"'
+    return response
+
+
+@login_required
+def export_ticket_pdf(request, pk):
+    ticket = get_object_or_404(Ticket, pk=pk)
+    profile = getattr(request.user, 'staff_profile', None)
+
+    if not request.user.is_superuser and profile and ticket.current_unit != profile.unit:
+        messages.error(request, "Bu talebe erişim yetkiniz yok.")
+        return redirect('tickets:staff_panel')
+
+    resolutions = ticket.resolutions.select_related('handled_by').order_by('created_at')
+    buffer = build_ticket_pdf(ticket, resolutions)
+    response = HttpResponse(buffer.read(), content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="talep-{ticket.tracking_code}.pdf"'
+    return response
