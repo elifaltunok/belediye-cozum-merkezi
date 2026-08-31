@@ -459,7 +459,7 @@ footer {
     box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.12) !important;
 }
 
-----------email------------------
+/*----------email------------------*/
 
 .quick-category-card i {
     transition: transform 0.2s ease;
@@ -469,7 +469,7 @@ footer {
     transform: scale(1.15);
 }
 
------------Herosection-------------------
+/*-----------Herosection-------------------*/
 .hero-section {
     background: linear-gradient(120deg, #0f172a, #2563eb 55%, #7c3aed) !important;
     border-radius: var(--radius);
@@ -495,7 +495,7 @@ footer {
     color: #1d4ed8 !important;
     background-color: #ffffff !important;
 }
-----------statcard-------------------
+/*----------statcard-------------------*/
 .stat-card {
     cursor: pointer;
 }
@@ -504,7 +504,7 @@ footer {
     transform: translateY(-3px);
     border-color: var(--primary-light);
 }
------------newscard-------------------
+/*-----------newscard-------------------*/
 .news-card-img {
     height: 180px;
     object-fit: cover;

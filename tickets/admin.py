@@ -1,11 +1,26 @@
 from django.contrib import admin
 from django.contrib.gis.admin import GISModelAdmin
 from .models import Category, Ticket, Resolution, SolutionCenter, SectoralStatistic, StaffProfile, PhoneVerification, DynamicField, DynamicFieldResponse, FormFieldAuditLog
+from .widgets import MapTilerWidget
+
+
+class DynamicFieldInline(admin.TabularInline):
+    model = DynamicField
+    extra = 1
+    fields = ('label', 'field_type', 'choices_text', 'is_required', 'order')
+    
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
     list_display = ('name', 'sector', 'default_unit', 'description')
     list_filter = ('sector', 'default_unit')
+
+
+class DynamicFieldResponseInline(admin.TabularInline):
+    model = DynamicFieldResponse
+    extra = 0
+    readonly_fields = ('field', 'value')
+    can_delete = False
 
 
 @admin.register(Ticket)
@@ -14,6 +29,9 @@ class TicketAdmin(GISModelAdmin):
     list_filter = ('status', 'category', 'district', 'current_unit')
     search_fields = ('tracking_code', 'title', 'description', 'district')
     readonly_fields = ('tracking_code', 'created_at', 'updated_at')
+    inlines = [DynamicFieldResponseInline]
+    gis_widget = MapTilerWidget
+    list_per_page = 25
 
 
 @admin.register(Resolution)
@@ -28,6 +46,7 @@ class SolutionCenterAdmin(GISModelAdmin):
     list_display = ('name', 'district', 'neighborhood')
     list_filter = ('district',)
     search_fields = ('name', 'address')
+    gis_widget = MapTilerWidget
 
 
 @admin.register(SectoralStatistic)

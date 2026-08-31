@@ -21,6 +21,7 @@ urlpatterns = [
     path('destekle/<str:tracking_code>/', views.support_ticket, name='support_ticket'),
     path('api/otp/gonder/', views.request_otp, name='request_otp'),
     path('api/otp/dogrula/', views.verify_otp, name='verify_otp'),
+    path('api/kategori-alanlari/<int:category_id>/', views.category_fields, name='category_fields'),
     path('form-yonetimi/', views.form_builder_list, name='form_builder_list'),
     path('form-yonetimi/<int:category_id>/', views.form_builder_edit, name='form_builder_edit'),
     path('form-yonetimi/<int:category_id>/alan-ekle/', views.form_field_create, name='form_field_create'),

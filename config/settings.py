@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.gis',
+    'django.forms',
     'rest_framework',
     'rest_framework.authtoken',
     'rest_framework_gis',
@@ -69,10 +70,12 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'tickets.context_processors.maptiler_key',
             ],
         },
     },
 ]
+FORM_RENDERER = 'django.forms.renderers.TemplatesSetting'
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
@@ -193,3 +196,6 @@ SITE_URL = os.getenv('SITE_URL', 'http://127.0.0.1:8000')
 
 #------------------sms-------------------
 SMS_BACKEND = os.getenv('SMS_BACKEND', 'console')
+
+
+MAPTILER_API_KEY = os.getenv('MAPTILER_API_KEY', '')

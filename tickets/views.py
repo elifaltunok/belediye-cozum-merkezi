@@ -664,3 +664,18 @@ def export_ticket_pdf(request, pk):
     response = HttpResponse(buffer.read(), content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="talep-{ticket.tracking_code}.pdf"'
     return response
+
+@require_GET
+def category_fields(request, category_id):
+    fields = DynamicField.objects.filter(category_id=category_id).order_by('order')
+    results = [
+        {
+            'id': f.id,
+            'label': f.label,
+            'field_type': f.field_type,
+            'choices': f.get_choices_list(),
+            'is_required': f.is_required,
+        }
+        for f in fields
+    ]
+    return JsonResponse({'fields': results})
