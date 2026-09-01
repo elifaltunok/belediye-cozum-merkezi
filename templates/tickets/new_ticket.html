@@ -79,9 +79,9 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Telefon Numarası <span class="text-danger">*</span></label>
+                        <label class="form-label">Telefon Numarası</span></label>
                         <div class="input-group">
-                            <input type="tel" id="phoneInput" class="form-control" placeholder="5XX XXX XX XX" required>
+                            <input type="tel" id="phoneInput" class="form-control" placeholder="5XX XXX XX XX">
                             <button type="button" id="sendOtpBtn" class="btn btn-outline-primary">Kod Gönder</button>
                         </div>
                         <div id="otpSection" class="d-none mt-2">
@@ -214,6 +214,7 @@
                     btn.addEventListener('click', function () {
                         var code = this.getAttribute('data-code');
                         var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                        var button = this;
 
                         fetch('/destekle/' + code + '/', {
                             method: 'POST',
@@ -222,15 +223,15 @@
                             .then(function (res) { return res.json(); })
                             .then(function (result) {
                                 if (result.status === 'ok') {
-                                    this.textContent = 'Desteklendi ✓ (' + result.support_count + ')';
-                                    this.disabled = true;
-                                    this.classList.remove('btn-outline-primary');
-                                    this.classList.add('btn-success');
-                                } else if (result.status === 'already_supported') {
-                                    this.textContent = 'Zaten Desteklediniz';
-                                    this.disabled = true;
+                                    button.textContent = 'Desteklendi ✓ (' + result.support_count + ') — Kaldırmak için tıklayın';
+                                    button.classList.remove('btn-outline-primary');
+                                    button.classList.add('btn-success');
+                                } else if (result.status === 'removed') {
+                                    button.textContent = 'Destekle (' + result.support_count + ')';
+                                    button.classList.remove('btn-success');
+                                    button.classList.add('btn-outline-primary');
                                 }
-                            }.bind(this));
+                            });
                     });
                 });
             })
@@ -257,9 +258,10 @@
             return;
         }
 
-        if (!verifiedPhone) {
+        var phoneTyped = document.getElementById('phoneInput').value.trim();
+        if (phoneTyped && !verifiedPhone) {
             e.preventDefault();
-            alert('Lütfen devam etmeden önce telefon numaranızı doğrulayın.');
+            alert('Telefon numarası girdiyseniz doğrulamanız gerekiyor, ya da alanı tamamen boş bırakın.');
         }
     });
 

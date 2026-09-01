@@ -19,7 +19,7 @@ def send_otp_sms(phone, code):
 
 STATUS_SMS_TEMPLATES = {
     'IN_PROGRESS': 'Sayın vatandaşımız, {code} takip kodlu talebiniz inceleniyor.',
-    'RESOLVED': 'Sayın vatandaşımız, {code} takip kodlu talebiniz çözüldü. Detay: {url}',
+    'RESOLVED': 'Sayın vatandaşımız, {code} takip kodlu talebiniz çözüldü. Değerlendirin: {url}',
 }
 
 
@@ -31,7 +31,11 @@ def send_status_sms(ticket, resolution):
     if not template:
         return
 
-    url = f"{settings.SITE_URL}/cozum/{ticket.tracking_code}/"
+    if resolution.new_status == 'RESOLVED':
+        url = f"{settings.SITE_URL}/degerlendir/{ticket.tracking_code}/"
+    else:
+        url = f"{settings.SITE_URL}/cozum/{ticket.tracking_code}/"
+        
     message = template.format(code=ticket.tracking_code, url=url)
 
     backend = getattr(settings, 'SMS_BACKEND', 'console')

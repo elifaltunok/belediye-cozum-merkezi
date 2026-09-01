@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <i class="bi bi-star-fill text-warning"></i> Deneyiminizi Değerlendirin
+            </div>
+            <div class="card-body">
+                <p class="text-muted">"{{ ticket.title }}" başlıklı talebiniz çözüldü. Sürecimizi değerlendirir misiniz?</p>
+
+                {% if ticket.citizen_rating %}
+                    <div class="alert alert-success">
+                        <i class="bi bi-check-circle-fill"></i> Bu talep için daha önce {{ ticket.citizen_rating }}/5 puan verdiniz. Teşekkür ederiz!
+                    </div>
+                {% else %}
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Puanınız</label>
+                        <div class="d-flex gap-2" id="starRating">
+                            {% for i in "12345" %}
+                                <i class="bi bi-star fs-2 star-option" data-value="{{ i }}" style="cursor:pointer; color:#d1d5db;"></i>
+                            {% endfor %}
+                        </div>
+                        <input type="hidden" name="rating" id="ratingInput" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Yorumunuz (opsiyonel)</label>
+                        <textarea name="feedback" class="form-control" rows="3" placeholder="Deneyiminizi anlatın..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Gönder</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    var stars = document.querySelectorAll('.star-option');
+    var ratingInput = document.getElementById('ratingInput');
+
+    stars.forEach(function (star) {
+        star.addEventListener('click', function () {
+            var value = parseInt(this.getAttribute('data-value'));
+            ratingInput.value = value;
+            stars.forEach(function (s) {
+                var sVal = parseInt(s.getAttribute('data-value'));
+                if (sVal <= value) {
+                    s.classList.remove('bi-star');
+                    s.classList.add('bi-star-fill');
+                    s.style.color = '#f59e0b';
+                } else {
+                    s.classList.remove('bi-star-fill');
+                    s.classList.add('bi-star');
+                    s.style.color = '#d1d5db';
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

@@ -31,4 +31,7 @@ urlpatterns = [
     path('rapor/excel/', views.export_tickets_excel, name='export_tickets_excel'),
     path('rapor/pdf/', views.export_dashboard_pdf, name='export_dashboard_pdf'),
     path('rapor/talep/<int:pk>/pdf/', views.export_ticket_pdf, name='export_ticket_pdf'),
+    path('degerlendir/<str:tracking_code>/', views.rate_ticket, name='rate_ticket'),
+    path('yorum-ekle/<str:tracking_code>/', views.add_citizen_comment, name='add_citizen_comment'),
+    path('panel/<int:pk>/yorum-ekle/', views.add_staff_comment, name='add_staff_comment'),
 ]

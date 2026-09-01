@@ -30,6 +30,9 @@ def send_status_notification(ticket, resolution):
         f"Akıllı Kent Sahada"
     )
 
+    if resolution.new_status == 'RESOLVED':
+        message += f"\nDeneyiminizi değerlendirmek için: {settings.SITE_URL}/degerlendir/{ticket.tracking_code}/\n"
+
     send_mail(
         subject=f"[Akıllı Kent Sahada] {subject_text} — {ticket.tracking_code}",
         message=message,

@@ -17,7 +17,7 @@ from django.utils import timezone
 from .models import (
     Ticket, Category, Resolution, SolutionCenter, SectoralStatistic,
     SECTOR_CHOICES, UNIT_CHOICES, PhoneVerification,
-    DynamicField, DynamicFieldResponse, FormFieldAuditLog,
+    DynamicField, DynamicFieldResponse, FormFieldAuditLog, TicketSupport, TicketComment,
 )
 from .forms import TicketForm, ResolutionForm, TrackingForm
 from .notifications import notify_status_change
@@ -127,11 +127,13 @@ def new_ticket(request):
         phone = request.POST.get('phone', '').strip()
         verified_phones = request.session.get('verified_phones', [])
 
-        if not phone or phone not in verified_phones:
-            messages.error(request, "Devam etmeden önce telefon numaranızı doğrulamanız gerekiyor.")
+        phone_ok = not phone or phone in verified_phones
+
+        if not phone_ok:
+            messages.error(request, "Girdiğiniz telefon numarasını doğrulamanız gerekiyor, ya da alanı boş bırakabilirsiniz.")
         elif form.is_valid():
             ticket = form.save(commit=False)
-            ticket.phone = phone
+            ticket.phone = phone if phone_ok and phone else None
             ticket.save()
             messages.success(request, f"Talebiniz alındı! Takip Kodunuz: {ticket.tracking_code}")
             return redirect('tickets:ticket_success', tracking_code=ticket.tracking_code)
@@ -423,19 +425,35 @@ def nearby_tickets(request):
 
     return JsonResponse({'results': results})
 
+def _get_client_ip(request):
+    forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if forwarded_for:
+        return forwarded_for.split(',')[0].strip()
+    return request.META.get('REMOTE_ADDR', '0.0.0.0')
+
 @require_POST
 def support_ticket(request, tracking_code):
     ticket = get_object_or_404(Ticket, tracking_code=tracking_code)
 
-    supported = request.session.get('supported_tickets', [])
-    if tracking_code in supported:
-        return JsonResponse({'status': 'already_supported', 'support_count': ticket.support_count})
+    if not request.session.session_key:
+        request.session.save()
 
-    ticket.support_count += 1
+    ip_address = _get_client_ip(request)
+    session_key = request.session.session_key
+
+    existing = TicketSupport.objects.filter(
+        ticket=ticket, ip_address=ip_address, session_key=session_key
+    ).first()
+
+    if existing:
+        existing.delete()
+        ticket.support_count = max(1, ticket.supporters.count() + 1)
+        ticket.save(update_fields=['support_count'])
+        return JsonResponse({'status': 'removed', 'support_count': ticket.support_count})
+
+    TicketSupport.objects.create(ticket=ticket, ip_address=ip_address, session_key=session_key)
+    ticket.support_count = ticket.supporters.count() + 1
     ticket.save(update_fields=['support_count'])
-
-    supported.append(tracking_code)
-    request.session['supported_tickets'] = supported
 
     return JsonResponse({'status': 'ok', 'support_count': ticket.support_count})
 
@@ -679,3 +697,58 @@ def category_fields(request, category_id):
         for f in fields
     ]
     return JsonResponse({'fields': results})
+
+
+def rate_ticket(request, tracking_code):
+    ticket = get_object_or_404(Ticket, tracking_code=tracking_code)
+
+    if ticket.status != 'RESOLVED':
+        messages.error(request, "Bu talep henüz çözülmediği için değerlendirme yapılamaz.")
+        return redirect('tickets:public_ticket_detail', tracking_code=tracking_code)
+
+    if request.method == 'POST':
+        rating = request.POST.get('rating')
+        feedback = request.POST.get('feedback', '').strip()
+        try:
+            rating = int(rating)
+            if rating < 1 or rating > 5:
+                raise ValueError
+        except (TypeError, ValueError):
+            messages.error(request, "Lütfen 1 ile 5 arasında bir puan seçin.")
+            return render(request, 'tickets/rate_ticket.html', {'ticket': ticket})
+
+        ticket.citizen_rating = rating
+        ticket.citizen_feedback = feedback
+        ticket.rating_submitted_at = timezone.now()
+        ticket.save(update_fields=['citizen_rating', 'citizen_feedback', 'rating_submitted_at'])
+        messages.success(request, "Değerlendirmeniz için teşekkür ederiz!")
+        return redirect('tickets:public_ticket_detail', tracking_code=tracking_code)
+
+    return render(request, 'tickets/rate_ticket.html', {'ticket': ticket})
+
+
+@require_POST
+def add_citizen_comment(request, tracking_code):
+    ticket = get_object_or_404(Ticket, tracking_code=tracking_code)
+    message = request.POST.get('message', '').strip()
+    if message:
+        TicketComment.objects.create(ticket=ticket, author_type='CITIZEN', message=message)
+        messages.success(request, "Yorumunuz eklendi.")
+    return redirect('tickets:public_ticket_detail', tracking_code=tracking_code)
+
+
+@login_required
+@require_POST
+def add_staff_comment(request, pk):
+    ticket = get_object_or_404(Ticket, pk=pk)
+    profile = getattr(request.user, 'staff_profile', None)
+
+    if not request.user.is_superuser and profile and ticket.current_unit != profile.unit:
+        messages.error(request, "Bu talebe erişim yetkiniz yok.")
+        return redirect('tickets:staff_panel')
+
+    message = request.POST.get('message', '').strip()
+    if message:
+        TicketComment.objects.create(ticket=ticket, author_type='STAFF', staff_user=request.user, message=message)
+        messages.success(request, "Yorum eklendi.")
+    return redirect('tickets:staff_ticket_detail', pk=pk)

@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.contrib.gis.admin import GISModelAdmin
-from .models import Category, Ticket, Resolution, SolutionCenter, SectoralStatistic, StaffProfile, PhoneVerification, DynamicField, DynamicFieldResponse, FormFieldAuditLog
+from .models import Category, Ticket, Resolution, SolutionCenter, SectoralStatistic, StaffProfile, PhoneVerification, DynamicField, DynamicFieldResponse, FormFieldAuditLog, TicketSupport, TicketComment
+
 from .widgets import MapTilerWidget
 
 
@@ -8,7 +9,7 @@ class DynamicFieldInline(admin.TabularInline):
     model = DynamicField
     extra = 1
     fields = ('label', 'field_type', 'choices_text', 'is_required', 'order')
-    
+
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
@@ -77,3 +78,17 @@ class FormFieldAuditLogAdmin(admin.ModelAdmin):
 
     def has_change_permission(self, request, obj=None):
         return False
+
+
+@admin.register(TicketSupport)
+class TicketSupportAdmin(admin.ModelAdmin):
+    list_display = ('ticket', 'ip_address', 'created_at')
+    list_filter = ('created_at',)
+    search_fields = ('ticket__tracking_code', 'ip_address')
+
+
+@admin.register(TicketComment)
+class TicketCommentAdmin(admin.ModelAdmin):
+    list_display = ('ticket', 'author_type', 'staff_user', 'created_at')
+    list_filter = ('author_type',)
+    search_fields = ('ticket__tracking_code', 'message')

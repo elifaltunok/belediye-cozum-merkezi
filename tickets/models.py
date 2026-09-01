@@ -66,7 +66,10 @@ class Ticket(models.Model):
     email = models.EmailField(blank=True, null=True, verbose_name="E-posta (bildirim için)")
     phone = models.CharField(max_length=20, blank=True, null=True, verbose_name="Telefon Numarası (Doğrulanmış)")
     support_count = models.PositiveIntegerField(default=1, verbose_name="Destek Sayısı")
-    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='tickets', verbose_name="Kategori")
+    citizen_rating = models.PositiveSmallIntegerField(null=True, blank=True, verbose_name="Vatandaş Puanı (1-5)")
+    citizen_feedback = models.TextField(blank=True, null=True, verbose_name="Vatandaş Geri Bildirimi")
+    rating_submitted_at = models.DateTimeField(null=True, blank=True, verbose_name="Puanlama Tarihi")
+    category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name='tickets', verbose_name="Kategori")
 
     district = models.CharField(max_length=100, verbose_name="İlçe")
     neighborhood = models.CharField(max_length=100, blank=True, null=True, verbose_name="Mahalle")
@@ -113,6 +116,7 @@ class Resolution(models.Model):
         related_name='handled_resolutions', verbose_name="İşlemi Yapan Personel"
     )
     note = models.TextField(blank=True, null=True, verbose_name="Saha Notu / Açıklama")
+    internal_note = models.TextField(blank=True, null=True, verbose_name="İç Not (Sadece Personel Görür)")
     resolution_image = models.ImageField(upload_to='resolution_images/', blank=True, null=True, verbose_name="Çözüm Sonrası Fotoğraf")
     previous_status = models.CharField(max_length=20, choices=STATUS_CHOICES, blank=True, null=True, verbose_name="Önceki Durum")
     new_status = models.CharField(max_length=20, choices=STATUS_CHOICES, verbose_name="Yeni Durum")
@@ -267,3 +271,39 @@ class DynamicFieldResponse(models.Model):
 
     def __str__(self):
         return f"{self.field.label}: {self.value}"
+
+
+class TicketSupport(models.Model):
+    ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='supporters', verbose_name="Talep")
+    ip_address = models.GenericIPAddressField(verbose_name="IP Adresi")
+    session_key = models.CharField(max_length=40, verbose_name="Oturum Anahtarı")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Tarih")
+
+    class Meta:
+        verbose_name = "Talep Desteği"
+        verbose_name_plural = "Talep Destekleri"
+        unique_together = ('ticket', 'ip_address', 'session_key')
+
+    def __str__(self):
+        return f"{self.ticket.tracking_code} — {self.ip_address}"
+
+
+class TicketComment(models.Model):
+    AUTHOR_CHOICES = [
+        ('CITIZEN', 'Vatandaş'),
+        ('STAFF', 'Personel'),
+    ]
+
+    ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='comments', verbose_name="Talep")
+    author_type = models.CharField(max_length=10, choices=AUTHOR_CHOICES, verbose_name="Yazan")
+    staff_user = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Personel (varsa)")
+    message = models.TextField(verbose_name="Mesaj")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Tarih")
+
+    class Meta:
+        verbose_name = "Talep Yorumu"
+        verbose_name_plural = "Talep Yorumları"
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"{self.ticket.tracking_code} - {self.get_author_type_display()}"

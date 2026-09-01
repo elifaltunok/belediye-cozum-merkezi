@@ -1,7 +1,6 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<a href="{% url 'tickets:staff_panel' %}" class="btn btn-link px-0">← Panele dön</a>
 
 <div class="d-flex justify-content-between align-items-center mb-2">
     <a href="{% url 'tickets:staff_panel' %}" class="btn btn-link px-0">← Panele dön</a>
@@ -20,6 +19,17 @@
                 <p><strong>İlçe / Mahalle:</strong> {{ ticket.district }} / {{ ticket.neighborhood|default:"—" }}</p>
                 <p><strong>Açıklama:</strong> {{ ticket.description }}</p>
                 <p><strong>Mevcut Durum:</strong> {{ ticket.get_status_display }}</p>
+                {% if ticket.citizen_rating %}
+                    <p><strong>Vatandaş Değerlendirmesi:</strong>
+                        {% for i in "12345" %}
+                            {% if forloop.counter <= ticket.citizen_rating %}★{% else %}☆{% endif %}
+                        {% endfor %}
+                        ({{ ticket.citizen_rating }}/5)
+                    </p>
+                    {% if ticket.citizen_feedback %}
+                        <p class="text-muted small">"{{ ticket.citizen_feedback }}"</p>
+                    {% endif %}
+                {% endif %}
                 {% if ticket.image %}
                     <img src="{{ ticket.image.url }}" class="img-fluid rounded mt-2" alt="Talep fotoğrafı">
                 {% endif %}
@@ -40,6 +50,10 @@
                         {{ form.note }}
                     </div>
                     <div class="mb-3">
+                        <label class="form-label">İç Not <span class="text-muted">(sadece personel görür)</span></label>
+                        {{ form.internal_note }}
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label">Çözüm Fotoğrafı</label>
                         {{ form.resolution_image }}
                     </div>
@@ -58,6 +72,9 @@
                         <small class="text-muted">{{ r.created_at|date:"d.m.Y H:i" }} — {{ r.handled_by.username|default:"—" }}</small>
                         <p class="mb-1">{{ r.previous_status|default:"—" }} → <strong>{{ r.get_new_status_display }}</strong></p>
                         {% if r.note %}<p class="mb-1">{{ r.note }}</p>{% endif %}
+                        {% if r.internal_note %}
+                            <p class="mb-1 text-danger small"><i class="bi bi-lock-fill"></i> {{ r.internal_note }}</p>
+                        {% endif %}
                         {% if r.resolution_image %}
                             <img src="{{ r.resolution_image.url }}" style="max-height:120px;" class="rounded">
                         {% endif %}
@@ -67,6 +84,28 @@
                 {% endfor %}
             </div>
         </div>
+    </div>
+</div>
+<div class="card shadow-sm mt-3">
+    <div class="card-header bg-white">Personel Yorumları</div>
+    <div class="card-body">
+        {% for comment in ticket.comments.all %}
+            <div class="mb-2 {% if comment.author_type == 'CITIZEN' %}ps-3 border-start border-3 border-success{% endif %}">
+                <small class="text-muted">
+                    {% if comment.author_type == 'CITIZEN' %}<strong>Vatandaş</strong>{% else %}<strong>{{ comment.staff_user.username|default:"Personel" }}</strong>{% endif %}
+                    — {{ comment.created_at|date:"d.m.Y H:i" }}
+                </small>
+                <p class="mb-0 small">{{ comment.message }}</p>
+            </div>
+        {% empty %}
+            <p class="text-muted small mb-0">Henüz yorum yok.</p>
+        {% endfor %}
+
+        <form method="post" action="{% url 'tickets:add_staff_comment' ticket.pk %}" class="mt-3">
+            {% csrf_token %}
+            <textarea name="message" class="form-control mb-2" rows="2" placeholder="Yorum ekleyin..." required></textarea>
+            <button type="submit" class="btn btn-outline-primary btn-sm">Gönder</button>
+        </form>
     </div>
 </div>
 {% endblock %}

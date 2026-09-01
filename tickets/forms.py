@@ -58,9 +58,10 @@ class TicketForm(forms.ModelForm):
 class ResolutionForm(forms.ModelForm):
     class Meta:
         model = Resolution
-        fields = ['note', 'resolution_image', 'new_status']
+        fields = ['note', 'internal_note', 'resolution_image', 'new_status']
         widgets = {
-            'note': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Saha notunuzu yazın...'}),
+            'note': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Vatandaşın göreceği saha notu...'}),
+            'internal_note': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Sadece personelin göreceği iç not (opsiyonel)...'}),
             'resolution_image': forms.FileInput(attrs={'class': 'form-control'}),
             'new_status': forms.Select(attrs={'class': 'form-select'}),
         }
