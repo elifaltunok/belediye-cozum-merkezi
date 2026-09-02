@@ -179,6 +179,7 @@ class StaffProfile(models.Model):
 
     user = models.OneToOneField('auth.User', on_delete=models.CASCADE, related_name='staff_profile', verbose_name="Kullanıcı")
     unit = models.CharField(max_length=30, choices=UNIT_CHOICES, verbose_name="Çalıştığı Birim")
+    is_content_editor = models.BooleanField(default=False, verbose_name="Makale Yazma Yetkisi")
 
     class Meta:
         verbose_name = "Personel Profili"

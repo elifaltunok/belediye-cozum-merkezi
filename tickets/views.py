@@ -95,12 +95,13 @@ def home(request):
         {'id': c.id, 'name': c.name, 'icon': get_category_icon(c), 'color': get_category_color(c.id)}
         for c in Category.objects.all()[:6]
     ]
-
+    latest_articles = Article.objects.filter(is_published=True).order_by('-created_at')[:3]
     recent_resolved = Ticket.objects.filter(status='RESOLVED').select_related('category').prefetch_related('resolutions').order_by('-updated_at')[:6]
 
     return render(request, 'tickets/home.html', {
         'stats': stats,
         'browse_categories': browse_categories,
+        'latest_articles': latest_articles,
         'recent_resolved': recent_resolved,
     })
 
@@ -772,6 +773,10 @@ def article_detail(request, slug):
 
 @login_required
 def article_manage_list(request):
+    profile = getattr(request.user, 'staff_profile', None)
+    if not request.user.is_superuser and (not profile or not profile.is_content_editor):
+        messages.error(request, "Makale yazma yetkiniz bulunmuyor.")
+        return redirect('tickets:article_list')
     if request.user.is_superuser:
         articles = Article.objects.all()
     else:
@@ -781,6 +786,10 @@ def article_manage_list(request):
 
 @login_required
 def article_create(request):
+    profile = getattr(request.user, 'staff_profile', None)
+    if not request.user.is_superuser and (not profile or not profile.is_content_editor):
+        messages.error(request, "Makale yazma yetkiniz bulunmuyor.")
+        return redirect('tickets:article_list')
     if request.method == 'POST':
         title = request.POST.get('title', '').strip()
         summary = request.POST.get('summary', '').strip()

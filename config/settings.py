@@ -71,6 +71,8 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'tickets.context_processors.maptiler_key',
+                'tickets.context_processors.site_stats',
+                'tickets.context_processors.page_title',
             ],
         },
     },

@@ -76,6 +76,49 @@
     </div>
 </div>
 
+
+{% if latest_articles %}
+<div class="mb-5">
+    <h5 class="text-center fw-bold mb-4"><i class="bi bi-journal-text"></i> Bilgilendirme Yazıları</h5>
+
+    <div id="articleCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="4000">
+        <div class="carousel-inner">
+            {% for article in latest_articles %}
+            <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                <a href="{% url 'tickets:article_detail' article.slug %}" class="text-decoration-none">
+                    <div class="card mx-auto article-slide-card">
+                        {% if article.cover_image %}
+                            <img src="{{ article.cover_image.url }}" class="card-img-top article-slide-img" alt="">
+                        {% else %}
+                            <div class="article-slide-img article-slide-placeholder">
+                                <i class="bi bi-journal-richtext"></i>
+                            </div>
+                        {% endif %}
+                        <div class="card-body text-center">
+                            <h6 class="text-dark">{{ article.title }}</h6>
+                            <p class="text-muted small mb-0">{{ article.summary }}</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+        {% if latest_articles|length > 1 %}
+        <button class="carousel-control-prev" type="button" data-bs-target="#articleCarousel" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon"></span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#articleCarousel" data-bs-slide="next">
+            <span class="carousel-control-next-icon"></span>
+        </button>
+        {% endif %}
+    </div>
+
+    <p class="text-center mt-3">
+        <a href="{% url 'tickets:article_list' %}" class="btn btn-outline-primary btn-sm">Devamı →</a>
+    </p>
+</div>
+{% endif %}
+
 <div class="mb-5">
     <h5 class="text-center fw-bold mb-4">Sık Karşılaşılan Kategoriler</h5>
     <div class="row g-3">

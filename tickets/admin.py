@@ -61,8 +61,8 @@ class SectoralStatisticAdmin(admin.ModelAdmin):
 
 @admin.register(StaffProfile)
 class StaffProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'unit')
-    list_filter = ('unit',)
+    list_display = ('user', 'unit', 'is_content_editor')
+    list_filter = ('unit', 'is_content_editor')
 
     
 @admin.register(PhoneVerification)
