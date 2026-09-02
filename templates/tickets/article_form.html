@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2 class="mb-4">Yeni Makale</h2>
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="mb-3"><label class="form-label">Başlık</label><input type="text" name="title" class="form-control" required></div>
+    <div class="mb-3"><label class="form-label">Kısa Özet</label><input type="text" name="summary" class="form-control" required></div>
+    <div class="mb-3"><label class="form-label">İçerik</label><textarea name="content" class="form-control" rows="10" required></textarea></div>
+    <div class="mb-3"><label class="form-label">Kapak Görseli</label><input type="file" name="cover_image" class="form-control"></div>
+    <button type="submit" class="btn btn-primary">Yayınla</button>
+</form>
+{% endblock %}

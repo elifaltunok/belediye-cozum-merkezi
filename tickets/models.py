@@ -307,3 +307,23 @@ class TicketComment(models.Model):
 
     def __str__(self):
         return f"{self.ticket.tracking_code} - {self.get_author_type_display()}"
+    
+
+class Article(models.Model):
+    title = models.CharField(max_length=200, verbose_name="Başlık")
+    slug = models.SlugField(max_length=220, unique=True, verbose_name="URL Kısaltması")
+    summary = models.CharField(max_length=300, verbose_name="Kısa Özet")
+    content = models.TextField(verbose_name="İçerik")
+    cover_image = models.ImageField(upload_to='article_images/', blank=True, null=True, verbose_name="Kapak Görseli")
+    author = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True, verbose_name="Yazar")
+    is_published = models.BooleanField(default=True, verbose_name="Yayında mı")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Oluşturulma Tarihi")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Güncellenme Tarihi")
+
+    class Meta:
+        verbose_name = "Bilgilendirme Makalesi"
+        verbose_name_plural = "Bilgilendirme Makaleleri"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.title

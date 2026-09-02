@@ -34,4 +34,8 @@ urlpatterns = [
     path('degerlendir/<str:tracking_code>/', views.rate_ticket, name='rate_ticket'),
     path('yorum-ekle/<str:tracking_code>/', views.add_citizen_comment, name='add_citizen_comment'),
     path('panel/<int:pk>/yorum-ekle/', views.add_staff_comment, name='add_staff_comment'),
+    path('bilgilendirme/', views.article_list, name='article_list'),
+    path('bilgilendirme/<slug:slug>/', views.article_detail, name='article_detail'),
+    path('makale-yonetimi/', views.article_manage_list, name='article_manage_list'),
+    path('makale-yonetimi/yeni/', views.article_create, name='article_create'),
 ]

@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block content %}
+<a href="{% url 'tickets:article_list' %}" class="btn btn-link px-0">← Bilgilendirmeye dön</a>
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        {% if article.cover_image %}
+            <img src="{{ article.cover_image.url }}" class="img-fluid rounded mb-3" alt="">
+        {% endif %}
+        <h2>{{ article.title }}</h2>
+        <p class="text-muted">{{ article.author.username|default:"Belediye" }} — {{ article.created_at|date:"d.m.Y" }}</p>
+        <div>{{ article.content|linebreaks }}</div>
+    </div>
+</div>
+{% endblock %}

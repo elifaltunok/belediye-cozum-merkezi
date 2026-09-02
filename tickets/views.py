@@ -13,11 +13,12 @@ from django.contrib.gis.measure import D
 from django.contrib.gis.db.models.functions import Distance
 from datetime import timedelta
 from django.utils import timezone
+from django.utils.text import slugify
 
 from .models import (
     Ticket, Category, Resolution, SolutionCenter, SectoralStatistic,
     SECTOR_CHOICES, UNIT_CHOICES, PhoneVerification,
-    DynamicField, DynamicFieldResponse, FormFieldAuditLog, TicketSupport, TicketComment,
+    DynamicField, DynamicFieldResponse, FormFieldAuditLog, TicketSupport, TicketComment, Article,
 )
 from .forms import TicketForm, ResolutionForm, TrackingForm
 from .notifications import notify_status_change
@@ -211,6 +212,10 @@ def dashboard(request):
     avg_duration = resolved_durations['avg_duration']
     avg_resolution_hours = round(avg_duration.total_seconds() / 3600, 1) if avg_duration else None
 
+    avg_rating = Ticket.objects.filter(citizen_rating__isnull=False).aggregate(avg=Avg('citizen_rating'))['avg']
+    avg_rating = round(avg_rating, 1) if avg_rating else None
+    rating_count = Ticket.objects.filter(citizen_rating__isnull=False).count()
+
     recent_activity = Resolution.objects.select_related('ticket', 'handled_by').order_by('-created_at')[:5]
 
     context = {
@@ -239,6 +244,8 @@ def dashboard(request):
         'unit_data': json.dumps(unit_data),
 
         'avg_resolution_hours': avg_resolution_hours,
+        'avg_rating': avg_rating,
+        'rating_count': rating_count,
         'recent_activity': recent_activity,
     }
     return render(request, 'tickets/dashboard.html', context)
@@ -752,3 +759,48 @@ def add_staff_comment(request, pk):
         TicketComment.objects.create(ticket=ticket, author_type='STAFF', staff_user=request.user, message=message)
         messages.success(request, "Yorum eklendi.")
     return redirect('tickets:staff_ticket_detail', pk=pk)
+
+def article_list(request):
+    articles = Article.objects.filter(is_published=True)
+    return render(request, 'tickets/article_list.html', {'articles': articles})
+
+
+def article_detail(request, slug):
+    article = get_object_or_404(Article, slug=slug, is_published=True)
+    return render(request, 'tickets/article_detail.html', {'article': article})
+
+
+@login_required
+def article_manage_list(request):
+    if request.user.is_superuser:
+        articles = Article.objects.all()
+    else:
+        articles = Article.objects.filter(author=request.user)
+    return render(request, 'tickets/article_manage_list.html', {'articles': articles})
+
+
+@login_required
+def article_create(request):
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        summary = request.POST.get('summary', '').strip()
+        content = request.POST.get('content', '').strip()
+        cover_image = request.FILES.get('cover_image')
+
+        if title and summary and content:
+            slug = slugify(title)
+            base_slug = slug
+            counter = 1
+            while Article.objects.filter(slug=slug).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+
+            Article.objects.create(
+                title=title, slug=slug, summary=summary, content=content,
+                cover_image=cover_image, author=request.user,
+            )
+            messages.success(request, "Makale yayınlandı.")
+            return redirect('tickets:article_manage_list')
+        messages.error(request, "Lütfen tüm zorunlu alanları doldurun.")
+
+    return render(request, 'tickets/article_form.html')

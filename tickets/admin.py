@@ -1,7 +1,10 @@
 from django.contrib import admin
 from django.contrib.gis.admin import GISModelAdmin
-from .models import Category, Ticket, Resolution, SolutionCenter, SectoralStatistic, StaffProfile, PhoneVerification, DynamicField, DynamicFieldResponse, FormFieldAuditLog, TicketSupport, TicketComment
-
+from .models import (
+    Category, Ticket, Resolution, SolutionCenter, SectoralStatistic, 
+    StaffProfile, PhoneVerification, DynamicField, DynamicFieldResponse, 
+    FormFieldAuditLog, TicketSupport, TicketComment, Article
+)
 from .widgets import MapTilerWidget
 
 
@@ -92,3 +95,10 @@ class TicketCommentAdmin(admin.ModelAdmin):
     list_display = ('ticket', 'author_type', 'staff_user', 'created_at')
     list_filter = ('author_type',)
     search_fields = ('ticket__tracking_code', 'message')
+
+
+@admin.register(Article)
+class ArticleAdmin(admin.ModelAdmin):
+    list_display = ('title', 'author', 'is_published', 'created_at')
+    list_filter = ('is_published',)
+    prepopulated_fields = {'slug': ('title',)}

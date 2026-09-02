@@ -56,6 +56,14 @@
     </div>
     <div class="col-md-6">
         <div class="card">
+            <div class="card-body">
+                <h6 class="text-muted"><i class="bi bi-star-fill text-warning"></i> Ortalama Memnuniyet</h6>
+                <h3>{% if avg_rating %}{{ avg_rating }}/5 <small class="text-muted fs-6">({{ rating_count }} oy)</small>{% else %}—{% endif %}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
             <div class="card-header"><i class="bi bi-activity"></i> Son Aktiviteler</div>
             <div class="card-body">
                 {% for r in recent_activity %}
