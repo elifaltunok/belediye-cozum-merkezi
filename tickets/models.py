@@ -22,6 +22,15 @@ UNIT_CHOICES = [
     ('DIGER', 'Diğer'),
 ]
 
+UNIT_TARGET_HOURS = {
+    'FEN_ISLERI': 48,
+    'TEMIZLIK': 24,
+    'PARK_BAHCE': 72,
+    'SU_KANAL': 24,
+    'ZABITA': 24,
+    'DIGER': 72,
+}
+
 STATUS_CHOICES = [
     ('PENDING', 'Beklemede'),
     ('IN_PROGRESS', 'İnceleniyor'),
@@ -101,6 +110,21 @@ class Ticket(models.Model):
         if is_new and not self.current_unit and self.category_id:
             self.current_unit = self.category.default_unit
         super().save(*args, **kwargs)
+
+    def get_priority_level(self):
+        if self.support_count >= 10:
+            return 'HIGH'
+        elif self.support_count >= 4:
+            return 'MEDIUM'
+        return 'LOW'
+
+    def get_priority_display_info(self):
+        levels = {
+            'HIGH': {'label': 'Yüksek Öncelik', 'color': 'danger', 'icon': 'bi-exclamation-triangle-fill'},
+            'MEDIUM': {'label': 'Orta Öncelik', 'color': 'warning', 'icon': 'bi-exclamation-circle-fill'},
+            'LOW': {'label': 'Normal', 'color': 'secondary', 'icon': 'bi-dash-circle'},
+        }
+        return levels[self.get_priority_level()]
 
     def __str__(self):
         return f"{self.tracking_code} - {self.title}"
@@ -308,6 +332,25 @@ class TicketComment(models.Model):
 
     def __str__(self):
         return f"{self.ticket.tracking_code} - {self.get_author_type_display()}"
+
+
+class UnitSLA(models.Model):
+    unit = models.CharField(max_length=30, choices=UNIT_CHOICES, unique=True, verbose_name="Birim")
+    target_hours = models.PositiveIntegerField(verbose_name="Hedef Çözüm Süresi (Saat)")
+
+    class Meta:
+        verbose_name = "Birim Hedef Süresi (SLA)"
+        verbose_name_plural = "Birim Hedef Süreleri (SLA)"
+
+    def __str__(self):
+        return f"{self.get_unit_display()} — {self.target_hours} saat"
+
+    @classmethod
+    def get_target_hours(cls, unit):
+        sla = cls.objects.filter(unit=unit).first()
+        if sla:
+            return sla.target_hours
+        return UNIT_TARGET_HOURS.get(unit, 72)
     
 
 class Article(models.Model):

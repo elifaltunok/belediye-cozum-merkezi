@@ -14,19 +14,24 @@
     </a>
 </div>
 
-<form method="get" class="mb-3">
-    <select name="status" class="form-select w-auto d-inline-block" onchange="this.form.submit()">
+<form method="get" class="mb-3 d-flex gap-2 flex-wrap">
+    <select name="status" class="form-select w-auto" onchange="this.form.submit()">
         <option value="">Tüm Durumlar</option>
         {% for value, label in status_choices %}
             <option value="{{ value }}" {% if value == selected_status %}selected{% endif %}>{{ label }}</option>
         {% endfor %}
     </select>
-</form>
+    <select name="sort" class="form-select w-auto" onchange="this.form.submit()">
+        <option value="priority" {% if sort_by == 'priority' %}selected{% endif %}>Önceliğe Göre</option>
+        <option value="date" {% if sort_by == 'date' %}selected{% endif %}>Tarihe Göre (En Yeni)</option>
+    </select>
+</form> 
 
 <div class="table-responsive">
 <table class="table table-hover bg-white shadow-sm">
     <thead>
         <tr>
+            <th>Öncelik</th>
             <th>Takip Kodu</th>
             <th>Başlık</th>
             <th>Kategori</th>
@@ -39,6 +44,16 @@
     <tbody>
         {% for ticket in tickets %}
         <tr>
+            <td>
+                {% with priority=ticket.get_priority_display_info %}
+                <span class="badge bg-{{ priority.color }}">
+                    <i class="bi {{ priority.icon }}"></i> {{ priority.label }}
+                </span>
+                {% if ticket.support_count > 1 %}
+                    <br><small class="text-muted">{{ ticket.support_count }} destek</small>
+                {% endif %}
+                {% endwith %}
+            </td>
             <td>{{ ticket.tracking_code }}</td>
             <td>{{ ticket.title }}</td>
             <td>{{ ticket.category.name }}</td>

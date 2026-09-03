@@ -59,7 +59,7 @@
 
             {% if request.user.is_authenticated %}
                 <div class="dropdown">
-                    <button class="btn btn-outline-light btn-sm dropdown-toggle {% if request.resolver_match.url_name in 'dashboard,staff_panel,staff_ticket_detail,form_builder_list,form_builder_edit,article_manage_list,article_create' %}active{% endif %}" type="button" data-bs-toggle="dropdown">
+                    <button class="btn btn-outline-light btn-sm dropdown-toggle {% if PAGE_PARENT == 'Yönetim' %}active{% endif %}" type="button" data-bs-toggle="dropdown">
                         <i class="bi bi-briefcase-fill"></i> Yönetim
                     </button>
                     <ul class="dropdown-menu">

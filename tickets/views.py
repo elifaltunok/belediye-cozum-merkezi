@@ -11,14 +11,15 @@ from django.views.decorators.http import require_GET, require_POST
 from django.contrib.gis.geos import Point
 from django.contrib.gis.measure import D
 from django.contrib.gis.db.models.functions import Distance
-from datetime import timedelta
-from django.utils import timezone
+from datetime import timedelta as td
+from django.utils import timezone as tz
 from django.utils.text import slugify
 
 from .models import (
     Ticket, Category, Resolution, SolutionCenter, SectoralStatistic,
     SECTOR_CHOICES, UNIT_CHOICES, PhoneVerification,
     DynamicField, DynamicFieldResponse, FormFieldAuditLog, TicketSupport, TicketComment, Article,
+    UnitSLA, UNIT_TARGET_HOURS
 )
 from .forms import TicketForm, ResolutionForm, TrackingForm
 from .notifications import notify_status_change
@@ -96,6 +97,21 @@ def home(request):
         for c in Category.objects.all()[:6]
     ]
     latest_articles = Article.objects.filter(is_published=True)[:12]
+    thirty_days_ago = tz.now() - td(days=30)
+
+    trending_categories = list(
+        Ticket.objects.filter(created_at__gte=thirty_days_ago)
+        .values('category__name')
+        .annotate(count=Count('id'))
+        .order_by('-count')[:5]
+    )
+
+    trending_districts = list(
+        Ticket.objects.filter(created_at__gte=thirty_days_ago)
+        .values('district')
+        .annotate(count=Count('id'))
+        .order_by('-count')[:5]
+    )
     recent_resolved = Ticket.objects.filter(status='RESOLVED').select_related('category').prefetch_related('resolutions').order_by('-updated_at')[:6]
 
     return render(request, 'tickets/home.html', {
@@ -103,6 +119,8 @@ def home(request):
         'browse_categories': browse_categories,
         'latest_articles': latest_articles,
         'recent_resolved': recent_resolved,
+        'trending_categories': trending_categories,
+        'trending_districts': trending_districts,
     })
 
 
@@ -213,6 +231,30 @@ def dashboard(request):
     avg_duration = resolved_durations['avg_duration']
     avg_resolution_hours = round(avg_duration.total_seconds() / 3600, 1) if avg_duration else None
 
+    unit_sla_data = []
+    for unit_code, unit_label in UNIT_CHOICES:
+        resolved = Resolution.objects.filter(assigned_unit=unit_code, new_status='RESOLVED').annotate(
+            duration=ExpressionWrapper(F('created_at') - F('ticket__created_at'), output_field=DurationField())
+        )
+        avg_dur = resolved.aggregate(avg=Avg('duration'))['avg']
+        avg_hours = round(avg_dur.total_seconds() / 3600, 1) if avg_dur else None
+        target = UnitSLA.get_target_hours(unit_code)
+
+        if avg_hours is not None:
+            status = 'good' if avg_hours <= target else 'bad'
+            percent = min(100, round((avg_hours / target) * 100)) if target > 0 else 0
+        else:
+            status = 'none'
+            percent = 0
+
+        unit_sla_data.append({
+            'unit': unit_label,
+            'avg_hours': avg_hours,
+            'target': target,
+            'status': status,
+            'percent': percent,
+        })
+
     avg_rating = Ticket.objects.filter(citizen_rating__isnull=False).aggregate(avg=Avg('citizen_rating'))['avg']
     avg_rating = round(avg_rating, 1) if avg_rating else None
     rating_count = Ticket.objects.filter(citizen_rating__isnull=False).count()
@@ -248,6 +290,8 @@ def dashboard(request):
         'avg_rating': avg_rating,
         'rating_count': rating_count,
         'recent_activity': recent_activity,
+
+        'unit_sla_data': unit_sla_data,
     }
     return render(request, 'tickets/dashboard.html', context)
 
@@ -268,15 +312,21 @@ def staff_panel(request):
     if status_filter:
         tickets = tickets.filter(status=status_filter)
 
-    tickets = tickets.select_related('category').order_by('-created_at')
+    sort_by = request.GET.get('sort', 'priority')
+    tickets = tickets.select_related('category')
+
+    if sort_by == 'priority':
+        tickets = tickets.order_by('-support_count', '-created_at')
+    else:
+        tickets = tickets.order_by('-created_at')
 
     return render(request, 'tickets/staff_panel.html', {
         'tickets': tickets,
         'profile': profile,
         'status_choices': Ticket.STATUS_CHOICES,
         'selected_status': status_filter,
+        'sort_by': sort_by,
     })
-
 
 @login_required
 def staff_ticket_detail(request, pk):

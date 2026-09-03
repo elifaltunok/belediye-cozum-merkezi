@@ -80,9 +80,13 @@ a:hover {
 }
 
 /* ---------------------------------- Navbar --------------------------------- */
-
 .navbar {
-    background: var(--bg) !important;
+    background:
+        radial-gradient(circle at 8% 8%, rgba(37, 99, 235, 0.1), transparent 32%),
+        radial-gradient(circle at 92% 18%, rgba(124, 58, 237, 0.09), transparent 30%),
+        radial-gradient(circle at 50% 100%, rgba(8, 145, 178, 0.08), transparent 35%),
+        var(--bg) !important;
+    background-attachment: fixed !important;
     box-shadow: none !important;
     padding-top: 1rem;
     padding-bottom: 1rem;
@@ -91,65 +95,59 @@ a:hover {
 
 .navbar-brand {
     color: var(--text) !important;
-    font-weight: 800;
-    font-size: 1.15rem;
-    letter-spacing: -0.02em;
 }
 
 .navbar .btn-outline-light {
     color: var(--text) !important;
-    border: 1.5px solid var(--border-strong, #59ff9c) !important;
+    border: 1.5px solid var(--border) !important;
     background: var(--primary-soft) !important;
-    font-size: 0.85rem;
-    font-weight: 600;
-    padding: 0.45rem 1rem;
-    border-radius: 8px;
-    transition: all 0.2s ease;
 }
 
-.navbar .btn-outline-light:hover {
-    background: linear-gradient(120deg, var(--primary), var(--accent-purple)) !important;
-    color: #ffffff !important;
-    border-color: transparent !important;
-    transform: translateY(-1px);
-}
-
+.navbar .btn-outline-light:hover,
 .navbar .btn-outline-light.active {
     background: linear-gradient(120deg, var(--primary), var(--accent-purple)) !important;
     color: #ffffff !important;
     border-color: transparent !important;
 }
 
+.navbar .dropdown-toggle::after {
+    filter: brightness(0) invert(1);
+}
+
 .navbar .dropdown-menu {
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    box-shadow: var(--shadow-md);
+    background: #1e293b !important; 
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
     padding: 0.5rem;
-    margin-top: 0.5rem;
+    margin-top: 0.6rem;
 }
 
 .navbar .dropdown-item {
     border-radius: 6px;
-    padding: 0.55rem 0.9rem;
-    font-size: 0.88rem;
+    padding: 0.6rem 0.9rem;
+    font-size: 0.875rem;
     font-weight: 500;
-    color: var(--text);
+    color: #cbd5e1 !important;
+    transition: all 0.15s ease;
 }
 
 .navbar .dropdown-item:hover {
-    background: var(--primary-soft);
-    color: var(--primary-dark);
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
+    transform: translateX(3px);
 }
 
 .navbar .dropdown-item.active-page {
-    background: var(--primary-soft);
-    color: var(--primary-dark);
+    background: #2563eb !important;
+    color: #ffffff !important;
     font-weight: 700;
 }
 
 .navbar .dropdown-toggle::after {
-    margin-left: 0.4rem;
+    margin-left: 0.45rem;
     vertical-align: 0.15em;
+    color: #ffffff;
 }
 
 /* ----------------------------------- Cards ---------------------------------- */
@@ -295,6 +293,12 @@ a:hover {
     font-size: 0.93rem;
     background-color: #fbfcff;
     transition: all 0.2s ease;
+}
+
+.form-select {
+    padding-right: 2.5rem !important;
+    background-position: right 0.85rem center;
+    background-size: 16px 12px;
 }
 
 .form-control:focus, .form-select:focus {
@@ -503,30 +507,40 @@ footer {
 
 /*-----------Herosection-------------------*/
 .hero-section {
-    background: linear-gradient(120deg, #0f172a, #2563eb 55%, #7c3aed) !important;
+    background:
+        radial-gradient(circle at 8% 8%, rgba(37, 99, 235, 0.1), transparent 32%),
+        radial-gradient(circle at 92% 18%, rgba(124, 58, 237, 0.09), transparent 30%),
+        radial-gradient(circle at 50% 100%, rgba(8, 145, 178, 0.08), transparent 35%),
+        var(--bg) !important;
+    background-attachment: fixed !important;
     border-radius: var(--radius);
-    box-shadow: var(--shadow-lg);
-    color: #ffffff !important;
+    box-shadow: none !important;
+    color: rgba(67, 27, 167, 0.85) !important;
+    margin-top: -1px;
 }
 
+/* 1. Sadece Hero İçindeki Başlık (H1/H2/H3/display-5) Gradyan Yapıldı */
 .hero-section h1,
 .hero-section h2,
 .hero-section h3,
+.hero-section .display-5 {
+    background: linear-gradient(90deg, #5c2b95 0%, #4c46bc 50%, #2e2a72 100%) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+    color: transparent !important;
+    display: inline-block; /* Gradyanın metne tam oturması için */
+}
+
+/* 2. Simge, Alt Metin ve Diğer Öğelerin Düz Rengi Korundu */
 .hero-section p,
 .hero-section div,
-.hero-section span {
-    color: #ffffff !important;
+.hero-section span,
+.hero-section i {
+    color: var(--text) !important;
+    -webkit-text-fill-color: initial !important; /* Başlıktan etkilenmesini önler */
 }
 
-.hero-section .btn-outline-light {
-    color: #ffffff !important;
-    border-color: rgba(255, 255, 255, 0.6) !important;
-}
-
-.hero-section .btn-outline-light:hover {
-    color: #1d4ed8 !important;
-    background-color: #ffffff !important;
-}
 /*----------statcard-------------------*/
 .stat-card {
     cursor: pointer;
@@ -560,31 +574,6 @@ footer {
     transform: translateY(-3px);
 }
 
-/* Hero Section Arka Plan Ve Yazı Zorlaması */
-div.hero-section {
-    background: linear-gradient(120deg, #0f172a, #2563eb 55%, #7c3aed) !important;
-    border-radius: var(--radius) !important;
-    box-shadow: var(--shadow-lg) !important;
-    color: #ffffff !important;
-}
-
-div.hero-section h1,
-div.hero-section p,
-div.hero-section i {
-    color: #ffffff !important;
-}
-
-/* Takip Et ve Haritayı Gör Buton İç Yazıları */
-div.hero-section .btn-outline-light {
-    color: #ffffff !important;
-    border-color: rgba(255, 255, 255, 0.6) !important;
-    background: rgba(255, 255, 255, 0.1) !important;
-}
-
-div.hero-section .btn-outline-light:hover {
-    color: #1d4ed8 !important;
-    background: #ffffff !important;
-}
 .result-card-clickable {
     transition: all 0.2s ease;
     cursor: pointer;
@@ -595,34 +584,36 @@ div.hero-section .btn-outline-light:hover {
     transform: translateY(-2px);
 }
 
-
 .top-stats-bar {
-    background: linear-gradient(90deg, #1d4ed8, #7c3aed, #0891b2);
+    background: linear-gradient(90deg, #5c2b95 0%, #4c46bc 50%, #2e2a72 100%) !important;
     color: #ffffff;
-    border: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .top-stats-bar .text-muted,
 .top-stats-bar span,
 .top-stats-bar i {
-    color: #ffffff !important;
+    color: #e2e8f0 !important;
 }
 
 .top-stats-bar .btn-live-map {
-    background: #ffffff;
-    color: #1d4ed8;
+    background: #ffffff !important;
+    color: #1e1b4b !important;
     font-weight: 700;
     border-radius: 20px;
     padding: 0.3rem 0.9rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .top-stats-bar .btn-live-map:hover {
-    background: #f0f4ff;
-    color: #1d4ed8;
+    background: #e0e7ff !important;
+    color: #312e81 !important;
+    transform: translateY(-1px);
 }
 
 .breadcrumb-bar {
-    background: linear-gradient(180deg, #f0f4ff, var(--primary-soft));
+    background: linear-gradient(180deg, #dcd2fc, var(--primary-soft));
     border-bottom: none;
 }   
 
@@ -745,4 +736,80 @@ body {
 .article-strip-nav:hover {
     background: var(--primary);
     color: #ffffff;
+}
+
+.table tbody tr:has(.bg-danger) {
+    background: rgba(239, 68, 68, 0.04);
+}
+
+.ticket-side-panel {
+    background: linear-gradient(160deg, #0f172a, #1e293b);
+    border-radius: var(--radius);
+    padding: 1.75rem;
+    position: sticky;
+    top: 1.5rem;
+}
+
+.step-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.step-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    opacity: 0.5;
+    transition: opacity 0.2s ease;
+    color: #ffffff;
+}
+
+.step-item.active,
+.step-item.done {
+    opacity: 1;
+}
+
+.step-num {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+}
+
+.step-item.active .step-num {
+    background: linear-gradient(120deg, var(--primary), var(--accent-purple));
+}
+
+.step-item.done .step-num {
+    background: #16a34a;
+}
+
+.step-item.done .step-num::before {
+    content: '✓';
+}
+
+.step-desc {
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin-top: 0.15rem;
+}
+
+.ticket-side-panel #map {
+    height: 320px;
+    border-radius: var(--radius-sm);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+@media (max-width: 991px) {
+    .ticket-side-panel {
+        position: static;
+    }
 }

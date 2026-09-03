@@ -3,7 +3,7 @@ from django.contrib.gis.admin import GISModelAdmin
 from .models import (
     Category, Ticket, Resolution, SolutionCenter, SectoralStatistic, 
     StaffProfile, PhoneVerification, DynamicField, DynamicFieldResponse, 
-    FormFieldAuditLog, TicketSupport, TicketComment, Article
+    FormFieldAuditLog, TicketSupport, TicketComment, Article, UnitSLA
 )
 from .widgets import MapTilerWidget
 
@@ -102,3 +102,8 @@ class ArticleAdmin(admin.ModelAdmin):
     list_display = ('title', 'author', 'is_published', 'created_at')
     list_filter = ('is_published',)
     prepopulated_fields = {'slug': ('title',)}
+
+
+@admin.register(UnitSLA)
+class UnitSLAAdmin(admin.ModelAdmin):
+    list_display = ('unit', 'target_hours')

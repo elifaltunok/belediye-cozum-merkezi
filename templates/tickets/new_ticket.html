@@ -1,49 +1,65 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="text-center mb-4">
-    <h2 class="fw-bold mb-1"><i class="bi bi-geo-alt-fill text-primary"></i> Talep Oluştur</h2>
-    <p class="text-muted">Haritadan konum seçin, birkaç saniyede talebinizi kaydedin.</p>
-</div>
+<div class="row g-4">
+    <div class="col-lg-5">
+        <div class="ticket-side-panel">
+            <h4 class="text-white fw-bold mb-4"><i class="bi bi-geo-alt-fill"></i> Talep Oluştur</h4>
 
-<div class="mb-5">
-    <h6 class="text-muted text-center mb-3"><i class="bi bi-lightning-charge-fill"></i> Hızlı Kategori Seçimi</h6>
-    <div class="row g-3">
-        {% for cat in quick_categories %}
-        <div class="col-6 col-md-3 col-lg-2">
-            <div class="card h-100 quick-category-card" data-category-id="{{ cat.id }}" data-color="{{ cat.color }}" role="button">
-                <div class="card-body text-center py-4">
-                    <i class="bi {{ cat.icon }} fs-2" style="color: {{ cat.color }};"></i>
-                    <p class="mb-0 mt-2 small fw-semibold">{{ cat.name }}</p>
+            <div class="step-list mb-4">
+                <div class="step-item active" id="stepIndicator1">
+                    <span class="step-num">1</span>
+                    <div>
+                        <strong>Konum & Kategori</strong>
+                        <div class="step-desc">Haritadan yeri işaretleyin, kategori seçin</div>
+                    </div>
+                </div>
+                <div class="step-item" id="stepIndicator2">
+                    <span class="step-num">2</span>
+                    <div>
+                        <strong>Detaylar</strong>
+                        <div class="step-desc">Başlık, açıklama ve fotoğraf ekleyin</div>
+                    </div>
+                </div>
+                <div class="step-item" id="stepIndicator3">
+                    <span class="step-num">3</span>
+                    <div>
+                        <strong>Gönder</strong>
+                        <div class="step-desc">Telefonu doğrulayın, talebi iletin</div>
+                    </div>
                 </div>
             </div>
-        </div>
-        {% endfor %}
-    </div>
-</div>
 
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card shadow-sm mb-5">
-            <div class="card-header bg-white">
-                <h4 class="card-title mb-0">Yeni Şikayet / Talep Bildirimi</h4>
+            <div id="locationWarning" class="alert alert-danger d-none mb-2">
+                <i class="bi bi-exclamation-triangle-fill"></i> Lütfen devam etmeden önce haritadan bir konum seçin.
             </div>
+            <div id="map"></div>
+            <p id="coordDisplay" class="text-white-50 small mt-2 mb-0">Henüz konum seçilmedi.</p>
+            <div id="nearbyTicketsBox" class="d-none mt-3"></div>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        <div class="card shadow-sm">
             <div class="card-body">
                 <form method="post" enctype="multipart/form-data" id="ticketForm">
                     {% csrf_token %}
-
-                    <div class="mb-3">
-                        <label class="form-label font-weight-bold">Konum Seçimi (Haritadan Noktayı İşaretleyin)</label>
-                        <div id="locationWarning" class="alert alert-danger d-none mb-2">
-                            <i class="bi bi-exclamation-triangle-fill"></i> Lütfen devam etmeden önce haritadan bir konum seçin.
-                        </div>
-                        <div id="map"></div>
-                        <p id="coordDisplay" class="text-muted small mt-1">Henüz konum seçilmedi.</p>
-                        <div id="nearbyTicketsBox" class="d-none mb-3"></div>
-                    </div>
-
                     {{ form.latitude }}
                     {{ form.longitude }}
+
+                    <h6 class="text-muted mb-3"><i class="bi bi-lightning-charge-fill"></i> Hızlı Kategori Seçimi</h6>
+                    <div class="row g-2 mb-4">
+                        {% for cat in quick_categories %}
+                        <div class="col-4 col-md-3">
+                            <div class="card h-100 quick-category-card" data-category-id="{{ cat.id }}" data-color="{{ cat.color }}" role="button">
+                                <div class="card-body text-center py-3">
+                                    <i class="bi {{ cat.icon }} fs-4" style="color: {{ cat.color }};"></i>
+                                    <p class="mb-0 mt-1 small fw-semibold">{{ cat.name }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
 
                     <div class="row mb-3">
                         <div class="col-md-6">
@@ -79,7 +95,7 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Telefon Numarası</span></label>
+                        <label class="form-label">Telefon Numarası</label>
                         <div class="input-group">
                             <input type="tel" id="phoneInput" class="form-control" placeholder="5XX XXX XX XX">
                             <button type="button" id="sendOtpBtn" class="btn btn-outline-primary">Kod Gönder</button>
@@ -107,7 +123,6 @@
 
                     <button type="submit" class="btn btn-primary w-100 py-2">Talebi Gönder</button>
                 </form>
-
             </div>
         </div>
     </div>
@@ -119,8 +134,8 @@
     var map = L.map('map').setView([41.0082, 28.9784], 11);
 
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
-    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ',
-    maxZoom: 19
+        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ',
+        maxZoom: 19
     }).addTo(map);
 
     var marker;
@@ -157,6 +172,14 @@
             coordDisplay.textContent = 'Seçilen konum: ' + lat.toFixed(5) + ', ' + lng.toFixed(5) + ' (adres bilgisi getiriliyor...)';
         }
 
+        var stepIndicator2 = document.getElementById('stepIndicator2');
+        var stepIndicator1 = document.getElementById('stepIndicator1');
+        if (stepIndicator2 && stepIndicator1) {
+            stepIndicator1.classList.remove('active');
+            stepIndicator1.classList.add('done');
+            stepIndicator2.classList.add('active');
+        }
+
         fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=' + lat + '&lon=' + lng + '&accept-language=tr')
             .then(function (res) { return res.json(); })
             .then(function (data) {
@@ -181,7 +204,8 @@
                     coordDisplay.textContent = 'Seçilen konum: ' + lat.toFixed(5) + ', ' + lng.toFixed(5) + ' (adres otomatik getirilemedi, alanları elle doldurun)';
                 }
             });
-                    fetch('/api/yakin-talepler/?lat=' + lat + '&lng=' + lng)
+
+        fetch('/api/yakin-talepler/?lat=' + lat + '&lng=' + lng)
             .then(function (res) { return res.json(); })
             .then(function (data) {
                 var box = document.getElementById('nearbyTicketsBox');
@@ -211,7 +235,6 @@
                     btn.addEventListener('click', function () {
                         var code = this.getAttribute('data-code');
                         var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-                        var button = this;
 
                         fetch('/destekle/' + code + '/', {
                             method: 'POST',
@@ -219,16 +242,17 @@
                         })
                             .then(function (res) { return res.json(); })
                             .then(function (result) {
+                                document.getElementById('supportCount' + code) ;
                                 if (result.status === 'ok') {
-                                    button.textContent = 'Desteklendi ✓ (' + result.support_count + ') — Kaldırmak için tıklayın';
-                                    button.classList.remove('btn-outline-primary');
-                                    button.classList.add('btn-success');
+                                    this.textContent = 'Desteklendi ✓ (' + result.support_count + ')';
+                                    this.classList.remove('btn-outline-primary');
+                                    this.classList.add('btn-success');
                                 } else if (result.status === 'removed') {
-                                    button.textContent = 'Destekle (' + result.support_count + ')';
-                                    button.classList.remove('btn-success');
-                                    button.classList.add('btn-outline-primary');
+                                    this.textContent = 'Destekle';
+                                    this.classList.remove('btn-success');
+                                    this.classList.add('btn-outline-primary');
                                 }
-                            });
+                            }.bind(this));
                     });
                 });
             })
@@ -237,10 +261,11 @@
             });
     });
 
-        document.getElementById('ticketForm').addEventListener('submit', function (e) {
+    document.getElementById('ticketForm').addEventListener('submit', function (e) {
         var latInput = document.getElementById('id_latitude');
         var lngInput = document.getElementById('id_longitude');
         var verifiedPhone = document.getElementById('verifiedPhoneField').value;
+        var phoneTyped = document.getElementById('phoneInput').value.trim();
 
         if (!latInput.value || !lngInput.value) {
             e.preventDefault();
@@ -255,7 +280,6 @@
             return;
         }
 
-        var phoneTyped = document.getElementById('phoneInput').value.trim();
         if (phoneTyped && !verifiedPhone) {
             e.preventDefault();
             alert('Telefon numarası girdiyseniz doğrulamanız gerekiyor, ya da alanı tamamen boş bırakın.');
@@ -392,7 +416,14 @@
             this.style.background = color + '14';
 
             loadDynamicFields(categoryId);
-            document.getElementById('id_title').scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            var stepIndicator3 = document.getElementById('stepIndicator3');
+            var stepIndicator2 = document.getElementById('stepIndicator2');
+            if (stepIndicator3 && stepIndicator2) {
+                stepIndicator2.classList.remove('active');
+                stepIndicator2.classList.add('done');
+                stepIndicator3.classList.add('active');
+            }
         });
     });
 </script>

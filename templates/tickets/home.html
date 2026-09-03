@@ -1,10 +1,32 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="hero-section text-center text-white py-5 mb-5">
+<!-- text-white yerine text-dark veya sınıfsız bırakabilirsiniz -->
+<div class="hero-section text-center py-5 mb-5">
     <div class="container py-4">
         <h1 class="display-5 fw-bold mb-3"><i class="bi bi-buildings-fill"></i> Akıllı Kent Sahada</h1>
         <p class="lead mb-4">Kent sorununu bildir, haritadan takip et, çözüme ortak ol.</p>
+    </div>
+</div>
+
+<div class="mb-5">
+    <h5 class="text-center fw-bold mb-4">Nasıl Çalışır?</h5>
+    <div class="row g-4 text-center">
+        <div class="col-md-4">
+            <i class="bi bi-geo-alt-fill fs-1 text-primary"></i>
+            <h6 class="mt-3">1. Konumu Seç</h6>
+            <p class="text-muted small">Haritadan sorunun bulunduğu noktayı işaretle.</p>
+        </div>
+        <div class="col-md-4">
+            <i class="bi bi-camera-fill fs-1" style="color:#7c3aed;"></i>
+            <h6 class="mt-3">2. Bildir</h6>
+            <p class="text-muted small">Kategori seç, açıklama ve fotoğraf ekleyerek gönder.</p>
+        </div>
+        <div class="col-md-4">
+            <i class="bi bi-check2-circle fs-1" style="color:#16a34a;"></i>
+            <h6 class="mt-3">3. Takip Et</h6>
+            <p class="text-muted small">Takip kodunla sürecin her aşamasını izle.</p>
+        </div>
     </div>
 </div>
 
@@ -55,31 +77,10 @@
     </div>
 </div>
 
-<div class="mb-5">
-    <h5 class="text-center fw-bold mb-4">Nasıl Çalışır?</h5>
-    <div class="row g-4 text-center">
-        <div class="col-md-4">
-            <i class="bi bi-geo-alt-fill fs-1 text-primary"></i>
-            <h6 class="mt-3">1. Konumu Seç</h6>
-            <p class="text-muted small">Haritadan sorunun bulunduğu noktayı işaretle.</p>
-        </div>
-        <div class="col-md-4">
-            <i class="bi bi-camera-fill fs-1" style="color:#7c3aed;"></i>
-            <h6 class="mt-3">2. Bildir</h6>
-            <p class="text-muted small">Kategori seç, açıklama ve fotoğraf ekleyerek gönder.</p>
-        </div>
-        <div class="col-md-4">
-            <i class="bi bi-check2-circle fs-1" style="color:#16a34a;"></i>
-            <h6 class="mt-3">3. Takip Et</h6>
-            <p class="text-muted small">Takip kodunla sürecin her aşamasını izle.</p>
-        </div>
-    </div>
-</div>
-
 
 {% if latest_articles %}
 <div class="mb-5">
-    <h5 class="text-center fw-bold mb-4"><i class="bi bi-journal-text"></i> Bilgilendirme Yazıları</h5>
+    <h5 class="text-center fw-bold mb-4"><i class="bi bi-journal-text"></i> Bilgilendirme</h5>
 
     <div class="article-strip-wrapper position-relative">
     <button type="button" id="articlePrev" class="article-strip-nav article-strip-nav-prev" aria-label="Önceki">
@@ -141,6 +142,44 @@
         <a href="{% url 'tickets:new_ticket' %}">Tüm kategorileri gör ve talep oluştur →</a>
     </p>
 </div>
+
+{% if trending_categories or trending_districts %}
+<div class="mb-5">
+    <h5 class="text-center fw-bold mb-4"><i class="bi bi-graph-up-arrow"></i> Son 30 Günün Trendleri</h5>
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-white">En Çok Bildirilen Kategoriler</div>
+                <div class="card-body">
+                    {% for item in trending_categories %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="small">{{ forloop.counter }}. {{ item.category__name }}</span>
+                            <span class="badge bg-primary rounded-pill">{{ item.count }}</span>
+                        </div>
+                    {% empty %}
+                        <p class="text-muted small mb-0">Bu ay henüz veri yok.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-white">En Çok Bildirim Yapılan İlçeler</div>
+                <div class="card-body">
+                    {% for item in trending_districts %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="small">{{ forloop.counter }}. {{ item.district }}</span>
+                            <span class="badge" style="background:#7c3aed;">{{ item.count }}</span>
+                        </div>
+                    {% empty %}
+                        <p class="text-muted small mb-0">Bu ay henüz veri yok.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 {% if recent_resolved %}
 <div class="mb-5">
