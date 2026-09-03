@@ -95,7 +95,7 @@ def home(request):
         {'id': c.id, 'name': c.name, 'icon': get_category_icon(c), 'color': get_category_color(c.id)}
         for c in Category.objects.all()[:6]
     ]
-    latest_articles = Article.objects.filter(is_published=True).order_by('-created_at')[:3]
+    latest_articles = Article.objects.filter(is_published=True)[:12]
     recent_resolved = Ticket.objects.filter(status='RESOLVED').select_related('category').prefetch_related('resolutions').order_by('-updated_at')[:6]
 
     return render(request, 'tickets/home.html', {

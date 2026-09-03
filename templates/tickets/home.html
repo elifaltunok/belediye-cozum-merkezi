@@ -81,12 +81,17 @@
 <div class="mb-5">
     <h5 class="text-center fw-bold mb-4"><i class="bi bi-journal-text"></i> Bilgilendirme Yazıları</h5>
 
-    <div id="articleCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="4000">
-        <div class="carousel-inner">
+    <div class="article-strip-wrapper position-relative">
+    <button type="button" id="articlePrev" class="article-strip-nav article-strip-nav-prev" aria-label="Önceki">
+        <i class="bi bi-chevron-left"></i>
+    </button>
+
+    <div class="article-strip-viewport">
+        <div class="article-strip-track" id="articleTrack">
             {% for article in latest_articles %}
-            <div class="carousel-item {% if forloop.first %}active{% endif %}">
+            <div class="article-strip-item">
                 <a href="{% url 'tickets:article_detail' article.slug %}" class="text-decoration-none">
-                    <div class="card mx-auto article-slide-card">
+                    <div class="card h-100 article-slide-card">
                         {% if article.cover_image %}
                             <img src="{{ article.cover_image.url }}" class="card-img-top article-slide-img" alt="">
                         {% else %}
@@ -94,7 +99,7 @@
                                 <i class="bi bi-journal-richtext"></i>
                             </div>
                         {% endif %}
-                        <div class="card-body text-center">
+                        <div class="card-body">
                             <h6 class="text-dark">{{ article.title }}</h6>
                             <p class="text-muted small mb-0">{{ article.summary }}</p>
                         </div>
@@ -103,15 +108,12 @@
             </div>
             {% endfor %}
         </div>
-        {% if latest_articles|length > 1 %}
-        <button class="carousel-control-prev" type="button" data-bs-target="#articleCarousel" data-bs-slide="prev">
-            <span class="carousel-control-prev-icon"></span>
-        </button>
-        <button class="carousel-control-next" type="button" data-bs-target="#articleCarousel" data-bs-slide="next">
-            <span class="carousel-control-next-icon"></span>
-        </button>
-        {% endif %}
     </div>
+
+    <button type="button" id="articleNext" class="article-strip-nav article-strip-nav-next" aria-label="Sonraki">
+        <i class="bi bi-chevron-right"></i>
+    </button>
+</div>
 
     <p class="text-center mt-3">
         <a href="{% url 'tickets:article_list' %}" class="btn btn-outline-primary btn-sm">Devamı →</a>
@@ -173,4 +175,65 @@
     </div>
 </div>
 {% endif %}
+<script>
+    (function () {
+        var track = document.getElementById('articleTrack');
+        if (!track) return;
+        var items = track.querySelectorAll('.article-strip-item');
+        if (items.length === 0) return;
+
+        var currentIndex = 0;
+
+        function getItemsPerView() {
+            return window.innerWidth <= 768 ? 1 : 3;
+        }
+
+        function getItemWidth() {
+            return items[0].getBoundingClientRect().width + 16;
+        }
+
+        function getMaxIndex() {
+            return Math.max(0, items.length - getItemsPerView());
+        }
+
+        function updatePosition() {
+            var maxIndex = getMaxIndex();
+            if (currentIndex > maxIndex) currentIndex = 0;
+            if (currentIndex < 0) currentIndex = maxIndex;
+            track.style.transform = 'translateX(-' + (currentIndex * getItemWidth()) + 'px)';
+        }
+
+        var nextBtn = document.getElementById('articleNext');
+        var prevBtn = document.getElementById('articlePrev');
+
+        if (nextBtn) {
+            nextBtn.addEventListener('click', function () {
+                var maxIndex = getMaxIndex();
+                currentIndex = currentIndex >= maxIndex ? 0 : currentIndex + 1;
+                updatePosition();
+            });
+        }
+
+        if (prevBtn) {
+            prevBtn.addEventListener('click', function () {
+                var maxIndex = getMaxIndex();
+                currentIndex = currentIndex <= 0 ? maxIndex : currentIndex - 1;
+                updatePosition();
+            });
+        }
+
+        setInterval(function () {
+            var maxIndex = getMaxIndex();
+            currentIndex = currentIndex >= maxIndex ? 0 : currentIndex + 1;
+            updatePosition();
+        }, 4000);
+
+        window.addEventListener('resize', function () {
+            currentIndex = 0;
+            updatePosition();
+        });
+
+        updatePosition();
+    })();
+</script>
 {% endblock %}
